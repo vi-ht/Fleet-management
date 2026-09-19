@@ -37,8 +37,7 @@ def generate(path: str, rows: int | None = None) -> None:
         writer = csv.writer(output)
         writer.writerow([
             "event_id", "VendorID", "tpep_pickup_datetime", "tpep_dropoff_datetime",
-            "passenger_count", "trip_distance", "RatecodeID", "store_and_fwd_flag",
-            "PULocationID", "DOLocationID", "payment_type", "fare_amount", "total_amount",
+            "PULocationID", "DOLocationID",
         ])
         for index in range(rows):
             event_time = start + timedelta(minutes=5 * index)
@@ -49,20 +48,11 @@ def generate(path: str, rows: int | None = None) -> None:
             dropoff_zone = zone_ids[(index * 31 + 7 + peak_offset) % len(zone_ids)]
             if dropoff_zone == pickup_zone:
                 dropoff_zone = zone_ids[(zone_ids.index(pickup_zone) + 1) % len(zone_ids)]
-            distance = round(1.0 + ((index * 13) % 180) / 10, 2)
-            fare = round(3.0 + distance * 2.75, 2)
             writer.writerow([
                 f"trip-{index:05d}",
                 1 + index % 2,
                 event_time.isoformat().replace("+00:00", ""),
                 (event_time + timedelta(minutes=8 + index % 35)).isoformat().replace("+00:00", ""),
-                1 + index % 4,
-                distance,
-                1,
-                "N",
                 pickup_zone,
                 dropoff_zone,
-                1 if index % 5 else 2,
-                fare,
-                round(fare + 2.5 + (index % 4) * 0.5, 2),
             ])

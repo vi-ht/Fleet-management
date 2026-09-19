@@ -1,6 +1,6 @@
 # Taxi Demand Batch + Streaming
 
-Đây là scaffold triển khai đúng lifecycle đã chốt: batch tạo dữ liệu sạch và model artifact một lần, còn streaming chỉ load artifact để inference và ghi MongoDB.
+Đây là scaffold triển khai đúng lifecycle đã chốt: batch tạo dữ liệu sạch và model artifact một lần, còn streaming chỉ load artifact để inference và ghi MongoDB. Phạm vi nghiệp vụ tập trung vào phát hiện điểm nóng nhu cầu và điều phối taxi; không xử lý giá cước/doanh thu.
 
 ## Chạy toàn bộ
 
@@ -42,7 +42,7 @@ Dataset chưa được cung cấp trong workspace, nên batch bootstrap tạo d�
 
 ## Realtime simulation theo schema NYC TLC
 
-Simulator mặc định phát sinh dữ liệu theo schema Yellow Taxi của NYC TLC, gồm `tpep_pickup_datetime`, `tpep_dropoff_datetime`, `PULocationID`, `DOLocationID`, passenger/fare fields và replay thành các event chuẩn hóa vào Kafka. Ngoài demand event, producer còn phát snapshot 40 xe vào topic `taxi_vehicles`; `fleet-tracker` đọc topic này và lưu trạng thái hiện tại vào collection `taxi.vehicle_status` để dashboard hiển thị bản đồ và danh sách xe.
+Simulator mặc định phát sinh dữ liệu theo các trường cần cho demand/dispatch của NYC TLC: `tpep_pickup_datetime`, `tpep_dropoff_datetime`, `PULocationID`, `DOLocationID`. Producer replay các event chuẩn hóa vào Kafka. Ngoài demand event, producer còn phát snapshot 40 xe vào topic `taxi_vehicles`; `fleet-tracker` đọc topic này và lưu trạng thái hiện tại vào collection `taxi.vehicle_status` để dashboard hiển thị bản đồ và danh sách xe.
 
 Dashboard tiếng Việt tại `http://localhost:8088/` có điều hướng, filter pickup zone, bản đồ OpenStreetMap, marker xe rảnh/đang có khách, biểu đồ demand, ranking khu vực, prediction table và auto-refresh. Producer chạy lặp liên tục; dừng bằng `docker compose stop kafka-producer`.
 

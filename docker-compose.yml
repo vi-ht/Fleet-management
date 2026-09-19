@@ -150,6 +150,8 @@ services:
     environment:
       HDFS_WEB_URL: http://namenode:9870
       HDFS_URI: hdfs://namenode:9000
+      SIMULATION_REFRESH: ${SIMULATION_REFRESH:-false}
+      SIMULATION_ROWS: ${SIMULATION_ROWS:-10000}
     volumes:
       - .:/workspace
       - ./data:/data
