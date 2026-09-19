@@ -1,4 +1,5 @@
 import os
+from datetime import datetime
 
 from flask import Flask, jsonify, render_template_string, request
 from pymongo import MongoClient
@@ -26,15 +27,15 @@ PAGE = """
     .live { padding:8px 13px; border:1px solid #257b6a; border-radius:999px; background:#10332f; color:var(--green); white-space:nowrap; }
     nav { display:flex; gap:4px; overflow:auto; padding:7px; margin-bottom:16px; background:#0e1729cc; border:1px solid var(--line); border-radius:12px; } nav a { color:var(--muted); text-decoration:none; padding:9px 14px; border-radius:8px; white-space:nowrap; } nav a:hover, nav a.active { background:#1a3150; color:var(--text); }
     .toolbar { display:flex; flex-wrap:wrap; align-items:center; gap:10px; margin-bottom:16px; padding:12px; background:#0e1729cc; border:1px solid var(--line); border-radius:12px; } label { color:var(--muted); font-size:13px; } select, button { border:1px solid #345071; border-radius:8px; color:var(--text); background:#15243b; padding:9px 12px; } button { cursor:pointer; font-weight:600; } button:hover { border-color:var(--green); } .refresh-info { margin-left:auto; color:var(--muted); font-size:12px; }
-    .cards { display:grid; grid-template-columns:repeat(6,1fr); gap:11px; margin-bottom:16px; } .card, section { background:linear-gradient(145deg,#14223aee,#10182aee); border:1px solid var(--line); border-radius:15px; box-shadow:0 12px 30px #03071255; } .card { padding:15px; min-height:100px; } .label { color:var(--muted); font-size:11px; text-transform:uppercase; letter-spacing:.07em; } .value { margin-top:13px; font-size:25px; font-weight:750; } .value.small { font-size:14px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; } .green { color:var(--green); } .orange { color:var(--orange); } .red { color:var(--red); }
+    .cards { display:grid; grid-template-columns:repeat(auto-fit,minmax(150px,1fr)); gap:11px; margin-bottom:16px; } .card, section { background:linear-gradient(145deg,#14223aee,#10182aee); border:1px solid var(--line); border-radius:15px; box-shadow:0 12px 30px #03071255; } .card { padding:15px; min-height:100px; } .label { color:var(--muted); font-size:11px; text-transform:uppercase; letter-spacing:.07em; } .value { margin-top:13px; font-size:25px; font-weight:750; } .value.small { font-size:14px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; } .green { color:var(--green); } .orange { color:var(--orange); } .red { color:var(--red); }
     .map-layout { display:grid; grid-template-columns:1.55fr .75fr; gap:15px; margin-bottom:16px; } section { padding:17px; min-width:0; } h2 { margin:0 0 14px; font-size:17px; } .section-head { display:flex; align-items:center; justify-content:space-between; gap:10px; } .hint { color:var(--muted); font-size:12px; }
     #map { height:445px; border-radius:11px; overflow:hidden; background:#18263b; } .leaflet-popup-content-wrapper, .leaflet-popup-tip { background:#14223a; color:#eff5ff; } .leaflet-control-attribution { font-size:9px; }
-    .taxi-marker { display:grid; place-items:center; width:42px; height:42px; border:3px solid #fff; border-radius:50%; color:#07101e; font-size:25px; line-height:1; box-shadow:0 3px 12px #07101ecc; } .taxi-marker.available { background:#4ee0b3; } .taxi-marker.occupied { background:#ffbd69; }
-    .legend { display:flex; gap:15px; margin-top:10px; color:var(--muted); font-size:12px; } .dot { display:inline-block; width:9px; height:9px; border-radius:50%; margin-right:5px; } .dot.available { background:var(--green); } .dot.occupied { background:var(--orange); }
+    .taxi-marker { position:relative; display:grid; place-items:center; width:42px; height:42px; border:3px solid #fff; border-radius:50%; color:#07101e; font-size:25px; line-height:1; box-shadow:0 3px 12px #07101ecc; } .taxi-marker.available { background:#4ee0b3; } .taxi-marker.occupied { background:#ffbd69; } .taxi-glyph { transform:translateY(1px); } .taxi-arrow { position:absolute; top:-13px; right:-8px; color:#fff; font-size:17px; font-weight:900; text-shadow:0 1px 4px #07101e; transform-origin:50% 100%; }
+    .legend { display:flex; flex-wrap:wrap; gap:15px; margin-top:10px; color:var(--muted); font-size:12px; } .dot { display:inline-block; width:9px; height:9px; border-radius:50%; margin-right:5px; } .dot.available { background:var(--green); } .dot.occupied { background:var(--orange); } .dot.hotspot { background:var(--red); } .boundary-note { color:var(--blue); } #movementStatus { color:var(--green); }
     .fleet-list { max-height:445px; overflow:auto; } .vehicle { display:flex; align-items:center; justify-content:space-between; gap:9px; padding:11px 3px; border-bottom:1px solid #24334d; } .vehicle-id { font-weight:650; } .vehicle-meta { color:var(--muted); font-size:12px; margin-top:4px; } .status { padding:4px 7px; border-radius:999px; font-size:10px; } .status.available { color:var(--green); background:#12352f; } .status.occupied { color:var(--orange); background:#46341b; }
     .main-grid { display:grid; grid-template-columns:1.25fr .75fr; gap:15px; margin-bottom:16px; } .chart-wrap { height:250px; position:relative; } svg { width:100%; height:100%; overflow:visible; } .axis { stroke:#304362; stroke-width:1; } .line { fill:none; stroke:var(--green); stroke-width:3; stroke-linejoin:round; stroke-linecap:round; } .area { fill:url(#area); opacity:.55; } .chart-note { color:var(--muted); font-size:12px; margin-top:6px; }
     .bars { display:flex; flex-direction:column; gap:11px; } .bar-row { display:grid; grid-template-columns:48px 1fr 58px; align-items:center; gap:9px; font-size:12px; } .bar-bg { height:10px; border-radius:99px; background:#243653; overflow:hidden; } .bar-fill { height:100%; border-radius:99px; background:linear-gradient(90deg,var(--blue),var(--green)); } .bar-value { text-align:right; color:var(--muted); }
-    .dispatch-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:10px; } .dispatch-card { border:1px solid #2b4665; background:#101b2e; border-radius:10px; padding:12px; } .dispatch-card strong { display:block; color:var(--green); margin-bottom:6px; } .dispatch-card span { color:var(--muted); font-size:12px; }
+    .dispatch-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:10px; } .dispatch-card { border:1px solid #2b4665; background:#101b2e; border-radius:10px; padding:12px; } .dispatch-card strong { display:block; color:var(--green); margin-bottom:6px; } .dispatch-card span { color:var(--muted); font-size:12px; } .forecast-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:10px; } .forecast-card { border:1px solid #2b4665; background:#101b2e; border-radius:10px; padding:13px; min-height:135px; } .forecast-card h3 { margin:0 0 10px; color:var(--blue); font-size:15px; } .forecast-zone { display:flex; justify-content:space-between; gap:8px; padding:6px 0; border-bottom:1px solid #243653; font-size:12px; } .forecast-zone b { color:var(--text); } .forecast-zone span { color:var(--orange); } .forecast-note { color:var(--muted); font-size:12px; margin-bottom:11px; }
     .table-wrap { max-height:350px; overflow:auto; } table { width:100%; border-collapse:collapse; font-size:13px; } th,td { padding:10px 8px; text-align:left; border-bottom:1px solid #24334d; white-space:nowrap; } th { position:sticky; top:0; background:var(--panel); color:var(--muted); font-weight:600; } tbody tr:hover { background:#1a2b46; } .pill { padding:4px 8px; border-radius:999px; background:#12352f; color:var(--green); font-size:11px; }
     .pipeline { display:grid; grid-template-columns:repeat(6,1fr); gap:8px; } .stage { border:1px solid #25405d; background:#101b2e; border-radius:10px; padding:10px 8px; text-align:center; color:var(--muted); font-size:12px; } .stage b { display:block; color:var(--green); font-size:18px; margin-bottom:4px; } footer { color:var(--muted); font-size:12px; margin-top:15px; }
     @media (max-width:1050px) { .cards { grid-template-columns:repeat(3,1fr); } .map-layout,.main-grid { grid-template-columns:1fr; } } @media (max-width:650px) { main { padding:16px 11px; } header { align-items:flex-start; } .subtitle { display:none; } .cards { grid-template-columns:repeat(2,1fr); gap:8px; } .pipeline { grid-template-columns:repeat(3,1fr); } .refresh-info { width:100%; margin-left:0; } #map { height:350px; } }
@@ -45,26 +46,38 @@ PAGE = """
   <nav><a class="active" href="#tong-quan">Tổng quan</a><a href="#ban-do">Bản đồ & xe</a><a href="#du-bao">Dự báo AI</a><a href="#dieu-phoi">Điều phối taxi</a><a href="#he-thong">Pipeline hệ thống</a></nav>
   <div class="toolbar"><label for="zone">Khu vực đón</label><select id="zone"><option value="">Tất cả khu vực</option></select><button id="refresh">↻ Cập nhật</button><label><input id="auto" type="checkbox" checked> Tự động cập nhật</label><span class="refresh-info">Cập nhật lần cuối: <span id="updated">—</span></span></div>
 
-  <div id="tong-quan" class="cards"><div class="card"><div class="label">Trạng thái pipeline</div><div class="value green" id="pipeline">Ổn định</div></div><div class="card"><div class="label">Xe trên hệ thống</div><div class="value" id="fleetTotal">—</div></div><div class="card"><div class="label">Xe đang rảnh</div><div class="value green" id="fleetAvailable">—</div></div><div class="card"><div class="label">Xe đang có khách</div><div class="value orange" id="fleetOccupied">—</div></div><div class="card"><div class="label">Dự báo đã phục vụ</div><div class="value" id="count">—</div></div><div class="card"><div class="label">Khu vực hoạt động</div><div class="value" id="zones">—</div></div></div>
+  <div id="tong-quan" class="cards"><div class="card"><div class="label">Trạng thái pipeline</div><div class="value green" id="pipeline">Ổn định</div></div><div class="card"><div class="label">Xe trên hệ thống</div><div class="value" id="fleetTotal">—</div></div><div class="card"><div class="label">Xe đang di chuyển</div><div class="value green" id="fleetMoving">—</div></div><div class="card"><div class="label">Xe đang rảnh</div><div class="value green" id="fleetAvailable">—</div></div><div class="card"><div class="label">Xe đang có khách</div><div class="value orange" id="fleetOccupied">—</div></div><div class="card"><div class="label">Sự kiện demand realtime</div><div class="value" id="count">—</div></div><div class="card"><div class="label">Khu vực hoạt động</div><div class="value" id="zones">—</div></div></div>
 
-  <div id="ban-do" class="map-layout"><section><div class="section-head"><h2>Bản đồ vị trí đội xe</h2><span class="hint">Marker cập nhật từ Kafka simulation</span></div><div id="map"></div><div class="legend"><span><i class="dot available"></i>Xe rảnh</span><span><i class="dot occupied"></i>Đang có khách</span><span id="latestVehicle">—</span></div></section><section><div class="section-head"><h2>Danh sách xe</h2><span class="hint" id="fleetCount">—</span></div><div id="fleetList" class="fleet-list"><div class="chart-note">Đang tải dữ liệu xe...</div></div></section></div>
+  <div id="ban-do" class="map-layout"><section><div class="section-head"><h2>Bản đồ xe đang chạy</h2><span class="hint">Kafka simulation · marker nội suy mỗi snapshot</span></div><div id="map"></div><div class="legend"><span><i class="dot available"></i>Đang tái bố trí</span><span><i class="dot occupied"></i>Đang có khách</span><span><i class="dot hotspot"></i>Điểm nóng</span><span class="boundary-note">▧ Ranh giới zone mô phỏng</span><span id="movementStatus">—</span><span id="latestVehicle">—</span></div></section><section><div class="section-head"><h2>Danh sách xe</h2><span class="hint" id="fleetCount">—</span></div><div id="fleetList" class="fleet-list"><div class="chart-note">Đang tải dữ liệu xe...</div></div></section></div>
 
   <div id="du-bao" class="main-grid"><section><h2>Xu hướng nhu cầu theo giờ</h2><div class="chart-wrap"><svg id="trend" viewBox="0 0 760 240" preserveAspectRatio="none"><defs><linearGradient id="area" x1="0" x2="0" y1="0" y2="1"><stop offset="0" stop-color="#55d6be" stop-opacity=".45"/><stop offset="1" stop-color="#55d6be" stop-opacity="0"/></linearGradient></defs><path class="axis" d="M30 210H750M30 115H750M30 20H750"/><path id="areaPath" class="area"/><path id="linePath" class="line"/></svg></div><div class="chart-note">Giá trị trung bình dự báo demand theo từng giờ</div></section><section><h2>Top khu vực có nhu cầu</h2><div id="ranking" class="bars"><div class="chart-note">Đang tải...</div></div></section></div>
   <section id="dieu-phoi" style="margin-bottom:16px"><div class="section-head"><h2>Điều phối taxi đề xuất</h2><span class="hint">Ghép xe rảnh vào điểm nóng demand</span></div><div id="dispatch" class="dispatch-grid"><div class="chart-note">Đang tính đề xuất...</div></div></section>
+  <section id="diem-nong-sap-toi" style="margin-bottom:16px"><div class="section-head"><h2>Điểm nóng sắp tới</h2><span class="hint" id="forecastHeadline">Đang đọc giờ hiện tại...</span></div><div class="forecast-note">Ví dụ: nếu hiện tại là 10:00, hệ thống xếp hạng khu vực có nhu cầu cao cho 11:00, 12:00 và 13:00 để điều xe đi trước.</div><div id="upcomingHotspots" class="forecast-grid"><div class="chart-note">Đang tính dự báo theo giờ...</div></div></section>
   <section id="he-thong" style="margin-bottom:16px"><h2>Trạng thái các tầng hệ thống</h2><div class="pipeline"><div class="stage"><b>✓</b>HDFS</div><div class="stage"><b>✓</b>MapReduce</div><div class="stage"><b>✓</b>Parquet ETL</div><div class="stage"><b>✓</b>Model AI</div><div class="stage"><b>✓</b>Kafka realtime</div><div class="stage"><b>✓</b>MongoDB</div></div></section>
   <section><h2>Dự báo mới nhất</h2><div class="table-wrap"><table><thead><tr><th>Mã sự kiện</th><th>Thời gian</th><th>Khu vực đón</th><th>Khu vực trả</th><th>Demand dự báo</th><th>Trạng thái</th></tr></thead><tbody id="rows"><tr><td colspan="6">Đang tải...</td></tr></tbody></table></div></section>
   <footer>Simulation chạy liên tục: producer → Kafka → AI inference → MongoDB · Tự động cập nhật 3 giây</footer>
 </main>
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script>
-const esc=value=>String(value??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); const zoneSelect=document.querySelector('#zone'); let map,markers;
-if(typeof L!=='undefined'){map=L.map('map').setView([40.73,-73.96],11);L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19,attribution:'© OpenStreetMap'}).addTo(map);markers=L.layerGroup().addTo(map);}else{document.querySelector('#map').innerHTML='<div class="chart-note" style="padding:30px">Không tải được bản đồ nền. Kiểm tra kết nối Internet để tải OpenStreetMap.</div>';}
-async function loadZones(){const zones=await fetch('/api/zones').then(r=>r.json());zones.forEach(z=>{const o=document.createElement('option');o.value=z;o.textContent=`Khu vực ${z}`;zoneSelect.appendChild(o);});}
+const esc=value=>String(value??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); const zoneSelect=document.querySelector('#zone'); let map,markers,zoneBoundaryLayer,knownZones=[];
+if(typeof L!=='undefined'){map=L.map('map').setView([40.73,-73.96],11);L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19,attribution:'© OpenStreetMap'}).addTo(map);zoneBoundaryLayer=L.layerGroup().addTo(map);markers=L.layerGroup().addTo(map);}else{document.querySelector('#map').innerHTML='<div class="chart-note" style="padding:30px">Không tải được bản đồ nền. Kiểm tra kết nối Internet để tải OpenStreetMap.</div>';}
+async function loadZones(){const zones=await fetch('/api/zones').then(r=>r.json());knownZones=zones;zones.forEach(z=>{const o=document.createElement('option');o.value=z;o.textContent=`Khu vực ${z}`;zoneSelect.appendChild(o);});renderZoneBoundaries([]);}
 function drawTrend(series){const values=series.map(x=>Number(x.value||0)),max=Math.max(...values,1),left=30,top=20,width=720,height=190;const points=values.map((v,i)=>`${left+(values.length===1?width/2:i*width/(values.length-1))},${top+height-(v/max)*height}`).join(' ');document.querySelector('#linePath').setAttribute('d',points?`M ${points}`:'');document.querySelector('#areaPath').setAttribute('d',points?`M ${left} ${top+height} L ${points} L ${left+width} ${top+height} Z`:'');}
-function renderDispatch(data){document.querySelector('#dispatch').innerHTML=data.recommendations.length?data.recommendations.map(x=>`<div class="dispatch-card"><strong>🚕 ${esc(x.vehicle_id)} → Khu ${esc(x.target_zone)}</strong><span>Điểm nóng: demand ${Number(x.demand).toFixed(1)} · Xe hiện tại: Khu ${esc(x.from_zone)} · ${x.reason}</span></div>`).join(''):'<div class="chart-note">Chưa có xe rảnh hoặc chưa có điểm nóng.</div>';}
-function renderFleet(items){const available=items.filter(x=>x.status==='available').length,occupied=items.filter(x=>x.status==='occupied').length;document.querySelector('#fleetTotal').textContent=items.length;document.querySelector('#fleetAvailable').textContent=available;document.querySelector('#fleetOccupied').textContent=occupied;document.querySelector('#fleetCount').textContent=`${items.length} xe`;document.querySelector('#fleetList').innerHTML=items.length?items.map(v=>`<div class="vehicle"><div><div class="vehicle-id">${esc(v.vehicle_id)}</div><div class="vehicle-meta">Khu ${esc(v.pickup_zone)} → ${esc(v.dropoff_zone)} · ${Number(v.speed_kmh||0)} km/h</div></div><span class="status ${v.status}">${v.status==='available'?'Rảnh':'Có khách'}</span></div>`).join(''):'<div class="chart-note">Chưa có snapshot xe.</div>';if(markers){markers.clearLayers();const bounds=[];items.forEach(v=>{const position=[Number(v.latitude),Number(v.longitude)];bounds.push(position);const icon=L.divIcon({className:'',html:`<div class="taxi-marker ${v.status}" title="${esc(v.vehicle_id)}">🚕</div>`,iconSize:[42,42],iconAnchor:[21,21]});L.marker(position,{icon,zIndexOffset:1000}).bindPopup(`<b>${esc(v.vehicle_id)}</b><br>Trạng thái: ${v.status==='available'?'Xe rảnh':'Đang có khách'}<br>Khu vực: ${esc(v.pickup_zone)} → ${esc(v.dropoff_zone)}<br>Tốc độ: ${Number(v.speed_kmh||0)} km/h`).addTo(markers);});if(bounds.length && !window.mapHasFitted){map.fitBounds(bounds,{padding:[30,30],maxZoom:12});window.mapHasFitted=true;}}document.querySelector('#latestVehicle').textContent=items.length?`Snapshot #${items[0].simulation_cycle} · ${items[0].updated_at}`:'Chưa có snapshot';}
-async function refresh(){try{const zone=encodeURIComponent(zoneSelect.value),[data,fleet,dispatch]=await Promise.all([fetch(`/api/dashboard?zone=${zone}`).then(r=>r.json()),fetch('/api/vehicles').then(r=>r.json()),fetch('/api/dispatch').then(r=>r.json())]);document.querySelector('#connection').textContent='Đang hoạt động';document.querySelector('#pipeline').textContent='Ổn định';document.querySelector('#count').textContent=Number(data.summary.count).toLocaleString();document.querySelector('#zones').textContent=Number(data.summary.zones).toLocaleString();document.querySelector('#updated').textContent=new Date().toLocaleTimeString();renderFleet(fleet.vehicles);renderDispatch(dispatch);drawTrend(data.series);const max=Math.max(...data.ranking.map(x=>Number(x.value||0)),1);document.querySelector('#ranking').innerHTML=data.ranking.length?data.ranking.map(x=>`<div class="bar-row"><span>Khu ${esc(x.zone)}</span><div class="bar-bg"><div class="bar-fill" style="width:${Math.max(3,Number(x.value)/max*100)}%"></div></div><span class="bar-value">${Number(x.value).toFixed(1)}</span></div>`).join(''):'<div class="chart-note">Không có dữ liệu.</div>';document.querySelector('#rows').innerHTML=data.predictions.length?data.predictions.map(p=>`<tr><td>${esc(p.event_id)}</td><td>${esc(p.event_time)}</td><td>Khu ${esc(p.pickup_zone)}</td><td>Khu ${esc(p.dropoff_zone)}</td><td><b>${Number(p.prediction||0).toFixed(0)}</b></td><td><span class="pill">Đã suy luận</span></td></tr>`).join(''):'<tr><td colspan="6">Chưa có prediction.</td></tr>';}catch(error){document.querySelector('#connection').textContent='Mất kết nối';document.querySelector('#pipeline').textContent='Kiểm tra service';}}
+ function renderDispatch(data){document.querySelector('#dispatch').innerHTML=data.recommendations.length?data.recommendations.map(x=>`<div class="dispatch-card"><strong>🚕 ${esc(x.vehicle_id)} → Khu ${esc(x.target_zone)}</strong><span>Điểm nóng: demand ${Number(x.demand).toFixed(1)} · Xe hiện tại: Khu ${esc(x.from_zone)} · ${x.reason}</span></div>`).join(''):'<div class="chart-note">Chưa có xe rảnh hoặc chưa có điểm nóng.</div>';}
+ function renderZoneBoundaries(hotspots){if(!zoneBoundaryLayer||!knownZones.length)return;zoneBoundaryLayer.clearLayers();const hotspotMap={};hotspots.forEach(item=>{hotspotMap[String(item.zone)]={demand:Number(item.demand||0)};});const minLat=40.68,minLon=-74.02,latStep=.0138,lonStep=.007,columns=20;knownZones.forEach(zone=>{const index=Math.max(0,Number(zone)-4),row=Math.floor(index/columns),column=index%columns,lat=minLat+row*latStep,lon=minLon+column*lonStep,hotspot=hotspotMap[String(zone)],polygon=L.polygon([[lat,lon],[lat+latStep,lon],[lat+latStep,lon+lonStep],[lat,lon+lonStep]],{color:hotspot?'#ff7f8e':'#436181',weight:hotspot?2:.7,fillColor:hotspot?'#ff7f8e':'#1c3858',fillOpacity:hotspot?.22:.035,interactive:true});polygon.bindTooltip(`Khu ${esc(zone)}${hotspot?` · Điểm nóng · demand ${hotspot.demand.toFixed(1)}`:''}`,{sticky:true,direction:'top'});polygon.addTo(zoneBoundaryLayer);});}
+  function renderUpcoming(data){const headline=document.querySelector('#forecastHeadline');headline.textContent=`Đồng hồ mô phỏng ${esc(data.current_label)} · dự báo 3 giờ tới`;document.querySelector('#upcomingHotspots').innerHTML=data.forecasts.map(window=>`<div class="forecast-card"><h3>${esc(window.label)}</h3>${window.zones.length?window.zones.map(zone=>`<div class="forecast-zone"><b>Khu ${esc(zone.zone)}</b><span>${Number(zone.demand).toFixed(1)} demand</span></div>`).join(''):'<div class="chart-note">Chưa có dữ liệu cho khung giờ này.</div>'}</div>`).join('');}
+ function renderFleet(items){const available=items.filter(x=>x.status==='available').length,occupied=items.filter(x=>x.status==='occupied').length;document.querySelector('#fleetTotal').textContent=items.length;document.querySelector('#fleetAvailable').textContent=available;document.querySelector('#fleetOccupied').textContent=occupied;document.querySelector('#fleetCount').textContent=`${items.length} xe`;document.querySelector('#fleetList').innerHTML=items.length?items.map(v=>`<div class="vehicle"><div><div class="vehicle-id">${esc(v.vehicle_id)}</div><div class="vehicle-meta">Khu ${esc(v.pickup_zone)} → ${esc(v.dropoff_zone)} · ${Number(v.speed_kmh||0)} km/h</div></div><span class="status ${v.status}">${v.status==='available'?'Rảnh':'Có khách'}</span></div>`).join(''):'<div class="chart-note">Chưa có snapshot xe.</div>';if(markers){markers.clearLayers();const bounds=[];items.forEach(v=>{const position=[Number(v.latitude),Number(v.longitude)];bounds.push(position);const icon=L.divIcon({className:'',html:`<div class="taxi-marker ${v.status}" title="${esc(v.vehicle_id)}">🚕</div>`,iconSize:[42,42],iconAnchor:[21,21]});L.marker(position,{icon,zIndexOffset:1000}).bindPopup(`<b>${esc(v.vehicle_id)}</b><br>Trạng thái: ${v.status==='available'?'Xe rảnh':'Đang có khách'}<br>Khu vực: ${esc(v.pickup_zone)} → ${esc(v.dropoff_zone)}<br>Tốc độ: ${Number(v.speed_kmh||0)} km/h`).addTo(markers);});if(bounds.length && !window.mapHasFitted){map.fitBounds(bounds,{padding:[30,30],maxZoom:12});window.mapHasFitted=true;}}document.querySelector('#latestVehicle').textContent=items.length?`Snapshot #${items[0].simulation_cycle} · ${items[0].updated_at}`:'Chưa có snapshot';}
+  async function refresh(){try{const zone=encodeURIComponent(zoneSelect.value),[data,fleet,dispatch,upcoming]=await Promise.all([fetch(`/api/dashboard?zone=${zone}`).then(r=>r.json()),fetch('/api/vehicles').then(r=>r.json()),fetch('/api/dispatch').then(r=>r.json()),fetch('/api/upcoming-hotspots?hours=3').then(r=>r.json())]);document.querySelector('#connection').textContent='Đang hoạt động';document.querySelector('#pipeline').textContent='Ổn định';document.querySelector('#count').textContent=Number(data.summary.count).toLocaleString();document.querySelector('#zones').textContent=Number(data.summary.zones).toLocaleString();document.querySelector('#updated').textContent=`${new Date().toLocaleTimeString()} · clock ${upcoming.current_label}`;renderFleet(fleet.vehicles);renderDispatch(dispatch);renderZoneBoundaries(dispatch.hotspots);renderUpcoming(upcoming);drawTrend(data.series);const max=Math.max(...data.ranking.map(x=>Number(x.value||0)),1);document.querySelector('#ranking').innerHTML=data.ranking.length?data.ranking.map(x=>`<div class="bar-row"><span>Khu ${esc(x.zone)}</span><div class="bar-bg"><div class="bar-fill" style="width:${Math.max(3,Number(x.value)/max*100)}%"></div></div><span class="bar-value">${Number(x.value).toFixed(1)}</span></div>`).join(''):'<div class="chart-note">Không có dữ liệu.</div>';document.querySelector('#rows').innerHTML=data.predictions.length?data.predictions.map(p=>`<tr><td>${esc(p.event_id)}</td><td>${esc(p.event_time)}</td><td>Khu ${esc(p.pickup_zone)}</td><td>Khu ${esc(p.dropoff_zone)}</td><td><b>${Number(p.prediction||0).toFixed(0)}</b></td><td><span class="pill">Đã suy luận</span></td></tr>`).join(''):'<tr><td colspan="6">Chưa có prediction.</td></tr>';}catch(error){document.querySelector('#connection').textContent='Mất kết nối';document.querySelector('#pipeline').textContent='Kiểm tra service';}}
 zoneSelect.addEventListener('change',refresh);document.querySelector('#refresh').addEventListener('click',refresh);loadZones().then(refresh);setInterval(()=>{if(document.querySelector('#auto').checked)refresh();},3000);
+
+// Keep one Leaflet marker per vehicle and interpolate between Kafka snapshots.
+// This makes the simulation visibly continuous instead of replacing all markers
+// with a new static snapshot every refresh.
+const liveMarkers={};
+function liveVehicleIcon(vehicle){const heading=Number(vehicle.heading_degrees||0);return L.divIcon({className:'',html:`<div class="taxi-marker ${vehicle.status}" title="${esc(vehicle.vehicle_id)}"><span class="taxi-glyph">🚕</span><span class="taxi-arrow" style="transform:rotate(${heading}deg)">▲</span></div>`,iconSize:[42,42],iconAnchor:[21,21]});}
+function liveVehiclePopup(vehicle){const status=vehicle.status==='occupied'?'Đang có khách':'Đang tái bố trí tới điểm nóng';return `<b>${esc(vehicle.vehicle_id)}</b><br>Trạng thái: ${status}<br>Tuyến: Khu ${esc(vehicle.pickup_zone)} → Khu ${esc(vehicle.dropoff_zone)}<br>Tốc độ: ${Number(vehicle.speed_kmh||0).toFixed(1)} km/h · Hướng: ${Number(vehicle.heading_degrees||0).toFixed(0)}°<br>Tiến độ: ${Number(vehicle.progress_pct||0).toFixed(0)}% · ETA: ${Number(vehicle.eta_minutes||0).toFixed(1)} phút`;}
+function animateLiveMarker(marker,target){if(marker._motionFrame)cancelAnimationFrame(marker._motionFrame);const start=marker.getLatLng(),started=performance.now(),duration=1800;const tick=now=>{const progress=Math.min(1,(now-started)/duration);marker.setLatLng([start.lat+(target[0]-start.lat)*progress,start.lng+(target[1]-start.lng)*progress]);if(progress<1)marker._motionFrame=requestAnimationFrame(tick);};marker._motionFrame=requestAnimationFrame(tick);}
+renderFleet=function renderLiveFleet(items){const available=items.filter(x=>x.status==='available').length,occupied=items.filter(x=>x.status==='occupied').length,moving=items.filter(x=>Number(x.speed_kmh||0)>0).length;document.querySelector('#fleetTotal').textContent=items.length;document.querySelector('#fleetMoving').textContent=moving;document.querySelector('#fleetAvailable').textContent=available;document.querySelector('#fleetOccupied').textContent=occupied;document.querySelector('#fleetCount').textContent=`${items.length} xe · ${moving} đang chạy`;document.querySelector('#movementStatus').textContent=`LIVE · ${moving}/${items.length} xe đang chạy`;document.querySelector('#fleetList').innerHTML=items.length?items.map(v=>`<div class="vehicle"><div><div class="vehicle-id">${esc(v.vehicle_id)}</div><div class="vehicle-meta">${esc(v.route_status||'Đang chạy')} · Khu ${esc(v.pickup_zone)} → ${esc(v.dropoff_zone)} · ${Number(v.speed_kmh||0).toFixed(1)} km/h · ETA ${Number(v.eta_minutes||0).toFixed(1)} phút</div></div><span class="status ${v.status}">${v.status==='available'?'Tái bố trí':'Có khách'}</span></div>`).join(''):'<div class="chart-note">Chưa có snapshot xe.</div>';if(markers){const bounds=[];const activeIds=new Set(items.map(v=>v.vehicle_id));items.forEach(vehicle=>{const target=[Number(vehicle.latitude),Number(vehicle.longitude)];bounds.push(target);let marker=liveMarkers[vehicle.vehicle_id];if(!marker){marker=L.marker(target,{icon:liveVehicleIcon(vehicle),zIndexOffset:1000}).addTo(markers);liveMarkers[vehicle.vehicle_id]=marker;}else{marker.setIcon(liveVehicleIcon(vehicle));animateLiveMarker(marker,target);}marker.bindPopup(liveVehiclePopup(vehicle));});Object.keys(liveMarkers).forEach(id=>{if(!activeIds.has(id)){if(liveMarkers[id]._motionFrame)cancelAnimationFrame(liveMarkers[id]._motionFrame);markers.removeLayer(liveMarkers[id]);delete liveMarkers[id];}});if(bounds.length&&!window.mapHasFitted){map.fitBounds(bounds,{padding:[30,30],maxZoom:12});window.mapHasFitted=true;}}document.querySelector('#latestVehicle').textContent=items.length?`Snapshot #${items[0].simulation_cycle} · ${items[0].updated_at}`:'Chưa có snapshot';};
 </script></body></html>
 """
 
@@ -137,6 +150,92 @@ def dispatch():
                 for row in hotspots
             ],
             "recommendations": recommendations,
+        }
+    )
+
+
+@app.get("/api/upcoming-hotspots")
+def upcoming_hotspots():
+    """Return the next demand windows using the learned hourly demand profile."""
+    start_hour = request.args.get("start_hour", type=int)
+    if start_hour is None:
+        latest = collection.find_one({}, {"event_time": 1}, sort=[("event_time", -1)])
+        latest_time = latest.get("event_time") if latest else None
+        try:
+            start_hour = datetime.fromisoformat(latest_time).hour if latest_time else datetime.now().hour
+        except (TypeError, ValueError):
+            start_hour = datetime.now().hour
+    start_hour = start_hour % 24
+    window_count = min(max(request.args.get("hours", 3, type=int), 1), 6)
+    target_hours = [(start_hour + offset) % 24 for offset in range(1, window_count + 1)]
+    rows = list(
+        collection.aggregate(
+            [
+                {
+                    "$project": {
+                        "pickup_zone": 1,
+                        "prediction": {"$ifNull": ["$prediction", 0]},
+                        "event_hour": {
+                            "$convert": {
+                                "input": {"$substrBytes": ["$event_time", 11, 2]},
+                                "to": "int",
+                                "onError": -1,
+                                "onNull": -1,
+                            }
+                        },
+                    }
+                },
+                {"$match": {"event_hour": {"$in": target_hours}}},
+                {
+                    "$group": {
+                        "_id": {"hour": "$event_hour", "zone": "$pickup_zone"},
+                        "demand": {"$avg": "$prediction"},
+                    }
+                },
+                {"$sort": {"_id.hour": 1, "demand": -1}},
+            ]
+        )
+    )
+    grouped = {hour: [] for hour in target_hours}
+    for row in rows:
+        hour = row.get("_id", {}).get("hour")
+        if hour in grouped and len(grouped[hour]) < 5:
+            grouped[hour].append(
+                {
+                    "zone": row.get("_id", {}).get("zone"),
+                    "demand": round(float(row.get("demand", 0)), 2),
+                }
+            )
+    fallback = []
+    if any(not zones for zones in grouped.values()):
+        fallback = list(
+            collection.aggregate(
+                [
+                    {"$group": {"_id": "$pickup_zone", "demand": {"$avg": "$prediction"}}},
+                    {"$sort": {"demand": -1}},
+                    {"$limit": 5},
+                ]
+            )
+        )
+        fallback = [
+            {"zone": row.get("_id"), "demand": round(float(row.get("demand", 0)), 2)}
+            for row in fallback
+        ]
+    forecasts = []
+    for hour in target_hours:
+        forecasts.append(
+            {
+                "hour": hour,
+                "label": f"{hour:02d}:00–{(hour + 1) % 24:02d}:00",
+                "zones": grouped[hour] or fallback,
+            }
+        )
+    return jsonify(
+        {
+            "current_hour": start_hour,
+            "current_label": f"{start_hour:02d}:00",
+            "generated_at": datetime.now().astimezone().isoformat(timespec="seconds"),
+            "forecasts": forecasts,
         }
     )
 

@@ -207,7 +207,7 @@ services:
     command: ["/workspace/scripts/run_topic_init.sh"]
     environment:
       KAFKA_BOOTSTRAP_SERVERS: kafka:9092
-      KAFKA_TOPIC: taxi_trips
+      KAFKA_TOPIC: taxi_trips_realtime_v2
     volumes:
       - .:/workspace
     depends_on:
@@ -222,14 +222,16 @@ services:
     command: ["/workspace/scripts/run_producer.sh"]
     environment:
       KAFKA_BOOTSTRAP_SERVERS: kafka:9092
-      KAFKA_TOPIC: taxi_trips
+      KAFKA_TOPIC: taxi_trips_realtime_v2
       VEHICLE_TOPIC: taxi_vehicles
-      PRODUCER_DELAY_SECONDS: ${PRODUCER_DELAY_SECONDS:-0.25}
+      PRODUCER_DELAY_SECONDS: ${PRODUCER_DELAY_SECONDS:-0.20}
       SIMULATION_LOOP: ${SIMULATION_LOOP:-true}
       SIMULATION_CYCLE_PAUSE_SECONDS: ${SIMULATION_CYCLE_PAUSE_SECONDS:-5}
       SIMULATION_MAX_EVENTS: ${SIMULATION_MAX_EVENTS:-0}
       SIMULATION_VEHICLES: ${SIMULATION_VEHICLES:-40}
-      SIMULATION_VEHICLE_SNAPSHOT_INTERVAL: ${SIMULATION_VEHICLE_SNAPSHOT_INTERVAL:-100}
+      SIMULATION_VEHICLE_SNAPSHOT_INTERVAL: ${SIMULATION_VEHICLE_SNAPSHOT_INTERVAL:-10}
+      SIMULATION_TIMEZONE_OFFSET_HOURS: ${SIMULATION_TIMEZONE_OFFSET_HOURS:-7}
+      SIMULATION_EVENT_TIME_STEP_SECONDS: ${SIMULATION_EVENT_TIME_STEP_SECONDS:-1}
     volumes:
       - .:/workspace
       - ./data:/data
@@ -248,11 +250,12 @@ services:
     environment:
       HADOOP_CONF_DIR: /opt/spark/conf/hadoop
       KAFKA_BOOTSTRAP_SERVERS: kafka:9092
-      KAFKA_TOPIC: taxi_trips
+      KAFKA_TOPIC: taxi_trips_realtime_v2
       MONGO_URI: mongodb://mongodb:27017
       MONGO_DATABASE: taxi
       MONGO_COLLECTION: demand_predictions
-      CHECKPOINT_LOCATION: file:///checkpoints/taxi-demand
+      STREAM_STARTING_OFFSETS: ${STREAM_STARTING_OFFSETS:-latest}
+      CHECKPOINT_LOCATION: file:///checkpoints/taxi-demand-realtime-v3
     volumes: *pipeline-volumes
     depends_on:
       model-trainer:

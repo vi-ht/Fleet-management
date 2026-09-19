@@ -20,11 +20,11 @@ Các stage one-shot sẽ hiện các log `[PASS]`: HDFS, MapReduce, ETL/Parquet,
 ## Artifact và chạy lại
 
 - Model: `models/gbt_demand_model/`
-- Checkpoint: `checkpoints/taxi-demand/`
+- Checkpoint realtime: `checkpoints/taxi-demand-realtime-v3/`
 - Dữ liệu local: `data/raw`, `data/curated`, `data/results`
 - HDFS: `/taxi/raw` và `/taxi/curated/trips`
 - MongoDB collection: `taxi.demand_predictions`
-- Kafka topic: `taxi_trips`
+- Kafka topic realtime: `taxi_trips_realtime_v2`
 
 Những lần `docker compose up` sau sẽ bỏ qua train nếu model artifact đã tồn tại. Chủ động train lại:
 
@@ -44,7 +44,11 @@ Dataset chưa được cung cấp trong workspace, nên batch bootstrap tạo d�
 
 Simulator mặc định phát sinh dữ liệu theo các trường cần cho demand/dispatch của NYC TLC: `tpep_pickup_datetime`, `tpep_dropoff_datetime`, `PULocationID`, `DOLocationID`. Producer replay các event chuẩn hóa vào Kafka. Ngoài demand event, producer còn phát snapshot 40 xe vào topic `taxi_vehicles`; `fleet-tracker` đọc topic này và lưu trạng thái hiện tại vào collection `taxi.vehicle_status` để dashboard hiển thị bản đồ và danh sách xe.
 
-Dashboard tiếng Việt tại `http://localhost:8088/` có điều hướng, filter pickup zone, bản đồ OpenStreetMap, marker xe rảnh/đang có khách, biểu đồ demand, ranking khu vực, prediction table và auto-refresh. Producer chạy lặp liên tục; dừng bằng `docker compose stop kafka-producer`.
+Dashboard tiếng Việt tại `http://localhost:8088/` có điều hướng, filter pickup zone, bản đồ OpenStreetMap, ranh giới zone mô phỏng, marker xe đang chạy, biểu đồ demand, ranking khu vực, điều phối taxi và forecast điểm nóng 3 giờ kế tiếp. Marker được nội suy giữa các snapshot Kafka để chuyển động liền mạch; producer chạy lặp liên tục và dừng bằng `docker compose stop kafka-producer`.
+
+Producer dùng simulation clock theo ngày/giờ hiện tại UTC+7, phát event đầu tiên tại thời điểm khởi động và tiến 1 giây mô phỏng cho mỗi event (có thể điều chỉnh bằng `SIMULATION_EVENT_TIME_STEP_SECONDS`). Snapshot đội xe phát mỗi 10 event; xe có tọa độ đích, hướng, tốc độ, tiến độ và ETA. Đây là mô phỏng realtime tăng tốc, không phải GPS xe thật.
+
+Các ô ranh giới trên map là 260 zone hình lưới do simulator định nghĩa trong phạm vi vận hành NYC; zone có điểm nóng sẽ được tô màu và hover để xem demand.
 
 Điều chỉnh tốc độ hoặc số event:
 
