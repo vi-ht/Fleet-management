@@ -1,0 +1,310 @@
+name: taxi-demand
+
+services:
+  namenode:
+    image: bde2020/hadoop-namenode:2.0.0-hadoop3.2.1-java8
+    environment:
+      CLUSTER_NAME: taxi-demand
+      CORE_CONF_fs_defaultFS: hdfs://namenode:9000
+      HDFS_CONF_dfs_replication: "1"
+    volumes:
+      - namenode-data:/hadoop/dfs/name
+    ports:
+      - "9870:9870"
+      - "9000:9000"
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsS http://localhost:9870/jmx?qry=Hadoop:service=NameNode,name=NameNodeStatus >/dev/null"]
+      interval: 5s
+      timeout: 5s
+      retries: 30
+
+  datanode:
+    image: bde2020/hadoop-datanode:2.0.0-hadoop3.2.1-java8
+    environment:
+      SERVICE_PRECONDITION: namenode:9870
+      CORE_CONF_fs_defaultFS: hdfs://namenode:9000
+      HDFS_CONF_dfs_replication: "1"
+      HDFS_CONF_dfs_client_use_datanode_hostname: "true"
+    volumes:
+      - datanode-data:/hadoop/dfs/data
+    depends_on:
+      namenode:
+        condition: service_healthy
+
+  resourcemanager:
+    image: bde2020/hadoop-resourcemanager:2.0.0-hadoop3.2.1-java8
+    environment:
+      SERVICE_PRECONDITION: namenode:9870,datanode:9864
+      CORE_CONF_fs_defaultFS: hdfs://namenode:9000
+      YARN_CONF_yarn_resourcemanager_hostname: resourcemanager
+    depends_on:
+      datanode:
+        condition: service_started
+
+  nodemanager:
+    image: bde2020/hadoop-nodemanager:2.0.0-hadoop3.2.1-java8
+    environment:
+      SERVICE_PRECONDITION: resourcemanager:8088
+      CORE_CONF_fs_defaultFS: hdfs://namenode:9000
+      YARN_CONF_yarn_resourcemanager_hostname: resourcemanager
+    depends_on:
+      resourcemanager:
+        condition: service_started
+
+  spark-master:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    environment:
+      SPARK_MODE: master
+      SPARK_RPC_AUTHENTICATION_ENABLED: "no"
+      SPARK_RPC_ENCRYPTION_ENABLED: "no"
+      SPARK_LOCAL_STORAGE_ENCRYPTION_ENABLED: "no"
+      SPARK_SSL_ENABLED: "no"
+      HADOOP_CONF_DIR: /opt/spark/conf/hadoop
+    volumes: &pipeline-volumes
+      - .:/workspace
+      - ./data:/data
+      - ./models:/models
+      - ./checkpoints:/checkpoints
+      - ./config/hadoop:/opt/spark/conf/hadoop:ro
+    entrypoint: ["/usr/local/bin/spark-entrypoint"]
+    command: ["master"]
+    healthcheck:
+      test: ["CMD-SHELL", "python3 -c \"import socket; s=socket.create_connection(('localhost',7077),2); s.close()\""]
+      interval: 5s
+      timeout: 5s
+      retries: 30
+    ports:
+      - "8080:8080"
+      - "7077:7077"
+
+  spark-worker:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    environment:
+      SPARK_MODE: worker
+      SPARK_MASTER_URL: spark://spark-master:7077
+      SPARK_WORKER_MEMORY: 1G
+      SPARK_WORKER_CORES: 2
+      SPARK_RPC_AUTHENTICATION_ENABLED: "no"
+      SPARK_RPC_ENCRYPTION_ENABLED: "no"
+      SPARK_LOCAL_STORAGE_ENCRYPTION_ENABLED: "no"
+      SPARK_SSL_ENABLED: "no"
+      HADOOP_CONF_DIR: /opt/spark/conf/hadoop
+    volumes: *pipeline-volumes
+    entrypoint: ["/usr/local/bin/spark-entrypoint"]
+    command: ["worker"]
+    depends_on:
+      spark-master:
+        condition: service_healthy
+
+  kafka:
+    image: apache/kafka:3.7.1
+    environment:
+      KAFKA_NODE_ID: "1"
+      KAFKA_PROCESS_ROLES: broker,controller
+      KAFKA_CONTROLLER_QUORUM_VOTERS: 1@kafka:9093
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT
+      KAFKA_LISTENERS: PLAINTEXT://:9092,CONTROLLER://:9093
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092
+      KAFKA_CONTROLLER_LISTENER_NAMES: CONTROLLER
+      KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: "1"
+      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: "1"
+      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: "1"
+      KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS: "0"
+      KAFKA_NUM_PARTITIONS: "1"
+    volumes:
+      - kafka-data:/tmp/kraft-combined-logs
+    ports:
+      - "9092:9092"
+    healthcheck:
+      test: ["CMD-SHELL", "/opt/kafka/bin/kafka-topics.sh --bootstrap-server localhost:9092 --list >/dev/null 2>&1"]
+      interval: 5s
+      timeout: 5s
+      retries: 30
+
+  mongodb:
+    image: mongo:7.0
+    environment:
+      MONGO_INITDB_DATABASE: taxi
+    volumes:
+      - mongodb-data:/data/db
+      - ./mongodb/init.js:/docker-entrypoint-initdb.d/init.js:ro
+    ports:
+      - "27017:27017"
+    healthcheck:
+      test: ["CMD-SHELL", "mongosh --quiet --eval 'db.adminCommand({ ping: 1 }).ok' | grep 1"]
+      interval: 5s
+      timeout: 5s
+      retries: 30
+
+  mapreduce-job:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    entrypoint: ["/bin/bash"]
+    command: ["/workspace/scripts/run_mapreduce.sh"]
+    environment:
+      HDFS_WEB_URL: http://namenode:9870
+      HDFS_URI: hdfs://namenode:9000
+    volumes:
+      - .:/workspace
+      - ./data:/data
+      - ./models:/models
+      - ./checkpoints:/checkpoints
+      - ./config/hadoop:/opt/spark/conf/hadoop:ro
+    depends_on:
+      namenode:
+        condition: service_healthy
+      datanode:
+        condition: service_started
+
+  spark-etl:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    entrypoint: ["/bin/bash"]
+    command: ["/workspace/scripts/run_etl.sh"]
+    environment:
+      HADOOP_CONF_DIR: /opt/spark/conf/hadoop
+    volumes: *pipeline-volumes
+    depends_on:
+      mapreduce-job:
+        condition: service_completed_successfully
+      spark-master:
+        condition: service_started
+      spark-worker:
+        condition: service_started
+
+  model-trainer:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    entrypoint: ["/bin/bash"]
+    command: ["/workspace/scripts/run_train.sh"]
+    environment:
+      HADOOP_CONF_DIR: /opt/spark/conf/hadoop
+      FORCE_TRAIN: ${FORCE_TRAIN:-false}
+    volumes: *pipeline-volumes
+    depends_on:
+      spark-etl:
+        condition: service_completed_successfully
+      spark-master:
+        condition: service_started
+      spark-worker:
+        condition: service_started
+
+  kafka-topic-init:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    entrypoint: ["/bin/bash"]
+    command: ["/workspace/scripts/run_topic_init.sh"]
+    environment:
+      KAFKA_BOOTSTRAP_SERVERS: kafka:9092
+      KAFKA_TOPIC: taxi_trips
+    volumes:
+      - .:/workspace
+    depends_on:
+      kafka:
+        condition: service_healthy
+
+  kafka-producer:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    entrypoint: ["/bin/bash"]
+    command: ["/workspace/scripts/run_producer.sh"]
+    environment:
+      KAFKA_BOOTSTRAP_SERVERS: kafka:9092
+      KAFKA_TOPIC: taxi_trips
+      VEHICLE_TOPIC: taxi_vehicles
+      PRODUCER_DELAY_SECONDS: ${PRODUCER_DELAY_SECONDS:-0.25}
+      SIMULATION_LOOP: ${SIMULATION_LOOP:-true}
+      SIMULATION_CYCLE_PAUSE_SECONDS: ${SIMULATION_CYCLE_PAUSE_SECONDS:-5}
+      SIMULATION_MAX_EVENTS: ${SIMULATION_MAX_EVENTS:-0}
+      SIMULATION_VEHICLES: ${SIMULATION_VEHICLES:-40}
+      SIMULATION_VEHICLE_SNAPSHOT_INTERVAL: ${SIMULATION_VEHICLE_SNAPSHOT_INTERVAL:-100}
+    volumes:
+      - .:/workspace
+      - ./data:/data
+    depends_on:
+      mapreduce-job:
+        condition: service_completed_successfully
+      kafka-topic-init:
+        condition: service_completed_successfully
+
+  streaming-predictor:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    entrypoint: ["/bin/bash"]
+    command: ["/workspace/scripts/run_streaming.sh"]
+    environment:
+      HADOOP_CONF_DIR: /opt/spark/conf/hadoop
+      KAFKA_BOOTSTRAP_SERVERS: kafka:9092
+      KAFKA_TOPIC: taxi_trips
+      MONGO_URI: mongodb://mongodb:27017
+      MONGO_DATABASE: taxi
+      MONGO_COLLECTION: demand_predictions
+      CHECKPOINT_LOCATION: file:///checkpoints/taxi-demand
+    volumes: *pipeline-volumes
+    depends_on:
+      model-trainer:
+        condition: service_completed_successfully
+      kafka-topic-init:
+        condition: service_completed_successfully
+      kafka:
+        condition: service_healthy
+      mongodb:
+        condition: service_healthy
+
+  fleet-tracker:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    entrypoint: ["/bin/bash"]
+    command: ["/workspace/scripts/run_fleet_tracker.sh"]
+    environment:
+      KAFKA_BOOTSTRAP_SERVERS: kafka:9092
+      VEHICLE_TOPIC: taxi_vehicles
+      MONGO_URI: mongodb://mongodb:27017
+      MONGO_DATABASE: taxi
+      MONGO_VEHICLE_COLLECTION: vehicle_status
+    volumes:
+      - .:/workspace
+    depends_on:
+      kafka-topic-init:
+        condition: service_completed_successfully
+      kafka:
+        condition: service_healthy
+      mongodb:
+        condition: service_healthy
+
+  dashboard:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    entrypoint: ["/bin/bash"]
+    command: ["/workspace/scripts/run_dashboard.sh"]
+    environment:
+      MONGO_URI: mongodb://mongodb:27017
+      MONGO_DATABASE: taxi
+      MONGO_COLLECTION: demand_predictions
+      MONGO_VEHICLE_COLLECTION: vehicle_status
+    volumes:
+      - .:/workspace
+    ports:
+      - "8088:8088"
+    depends_on:
+      mongodb:
+        condition: service_healthy
+
+volumes:
+  namenode-data:
+  datanode-data:
+  kafka-data:
+  mongodb-data:

@@ -1,0 +1,10 @@
+.git
+.codex
+.agents
+__pycache__
+*.pyc
+.env
+evidence
+models
+checkpoints
+data
