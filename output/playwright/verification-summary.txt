@@ -1,4 +1,4 @@
-collected_at=2026-09-25T10:03:03.9927344+07:00
+collected_at=2026-09-25T11:11:10.7937814+07:00
 dashboard_health=True
 hotspot_records=True
 upcoming_hotspots=True

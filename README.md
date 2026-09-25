@@ -67,6 +67,7 @@ Tham khảo cấu trúc cột tại [Yellow Taxi Data Dictionary](https://www.ny
 ## Ảnh chụp và evidence
 
 - Ảnh dashboard đầu ra: [`output/playwright/dashboard-output.png`](output/playwright/dashboard-output.png).
+- Ảnh chi tiết bản đồ và vùng hotspot: [`output/playwright/map-hotspots.png`](output/playwright/map-hotspots.png).
 - Tóm tắt xác minh đã lưu: [`output/playwright/verification-summary.txt`](output/playwright/verification-summary.txt). Lần ghi nhận này xác nhận dashboard/API, hotspot, forecast, đội xe chuyển động, model, MongoDB và 7 Parquet trên HDFS.
 - Để thu lại log và JSON chi tiết từ stack đang chạy, dùng `scripts/collect_evidence.ps1`; script lưu kết quả cục bộ trong `evidence/`.
 
