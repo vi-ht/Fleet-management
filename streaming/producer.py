@@ -18,6 +18,7 @@ cycle_pause = float(os.getenv("SIMULATION_CYCLE_PAUSE_SECONDS", "5"))
 max_events = int(os.getenv("SIMULATION_MAX_EVENTS", "0"))
 vehicle_count = int(os.getenv("SIMULATION_VEHICLES", "40"))
 vehicle_snapshot_interval = int(os.getenv("SIMULATION_VEHICLE_SNAPSHOT_INTERVAL", "100"))
+source_limit = int(os.getenv("SIMULATION_SOURCE_ROWS", "10000"))
 simulation_timezone_offset = int(os.getenv("SIMULATION_TIMEZONE_OFFSET_HOURS", "7"))
 event_time_step_seconds = float(os.getenv("SIMULATION_EVENT_TIME_STEP_SECONDS", "30"))
 simulation_timezone = timezone(timedelta(hours=simulation_timezone_offset))
@@ -69,6 +70,45 @@ def initial_vehicle_state(vehicle_index):
 
 
 vehicle_states = [initial_vehicle_state(index) for index in range(vehicle_count)]
+
+
+def source_rows():
+    """Replay a bounded slice of the real NYC Parquet source when available."""
+    from pathlib import Path
+
+    source_dir = Path(
+        os.getenv(
+            "RAW_DATA_PATH",
+            "/workspace/Nyc taxi trip record/Nyc taxi trip record",
+        )
+    )
+    parquet_files = sorted(source_dir.glob("yellow_tripdata_*.parquet"))
+    if parquet_files:
+        import pyarrow.dataset as ds
+
+        dataset = ds.dataset([str(path) for path in parquet_files], format="parquet")
+        scanner = dataset.scanner(
+            columns=["PULocationID", "DOLocationID"], batch_size=10_000
+        )
+        yielded = 0
+        for batch in scanner.to_batches():
+            values = batch.to_pydict()
+            for pickup_zone, dropoff_zone in zip(
+                values["PULocationID"], values["DOLocationID"]
+            ):
+                if pickup_zone is None or dropoff_zone is None:
+                    continue
+                yield {"PULocationID": pickup_zone, "DOLocationID": dropoff_zone}
+                yielded += 1
+                if source_limit and yielded >= source_limit:
+                    return
+        return
+
+    with open("/data/raw/taxi_trips.csv", encoding="utf-8") as source:
+        for index, row in enumerate(csv.DictReader(source)):
+            if source_limit and index >= source_limit:
+                return
+            yield row
 
 
 def route_distance_km(latitude, longitude, destination_latitude, destination_longitude):
@@ -169,8 +209,7 @@ def send_vehicle_snapshot(cycle_number):
 while True:
     count = 0
     send_vehicle_snapshot(cycle)
-    with open("/data/raw/taxi_trips.csv", encoding="utf-8") as source:
-        for index, row in enumerate(csv.DictReader(source)):
+    for index, row in enumerate(source_rows()):
             # Convert the historical replay into a current-day accelerated stream.
             # The raw date is still useful for batch training, but online inference
             # must receive events from the current simulation clock.

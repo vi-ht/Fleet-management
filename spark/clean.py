@@ -11,12 +11,17 @@ from pyspark.sql.functions import (
 )
 
 
-spark = SparkSession.builder.appName("taxi-demand-etl").getOrCreate()
+spark = SparkSession.builder.appName("taxi-hotspot-etl").getOrCreate()
 spark.sparkContext.setLogLevel("WARN")
 
-raw = spark.read.option("header", True).option("inferSchema", True).csv(
-    "hdfs://namenode:9000/taxi/raw/taxi_trips.csv"
-)
+try:
+    raw = spark.read.parquet("hdfs://namenode:9000/taxi/raw/parquet")
+    print("[INFO] Reading NYC TLC Parquet from HDFS", flush=True)
+except Exception:
+    raw = spark.read.option("header", True).option("inferSchema", True).csv(
+        "hdfs://namenode:9000/taxi/raw/taxi_trips.csv"
+    )
+    print("[INFO] Reading synthetic CSV fallback from HDFS", flush=True)
 if "tpep_pickup_datetime" in raw.columns:
     if "event_id" not in raw.columns:
         raw = raw.withColumn(

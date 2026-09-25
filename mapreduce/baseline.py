@@ -42,7 +42,7 @@ def generate(path: str, rows: int | None = None) -> None:
         for index in range(rows):
             event_time = start + timedelta(minutes=5 * index)
             hour = event_time.hour
-            # Morning/evening demand peaks make the stream less artificial than a cycle.
+            # Morning/evening hotspot peaks make the stream less artificial than a cycle.
             peak_offset = 11 if 7 <= hour <= 9 or 16 <= hour <= 19 else 0
             pickup_zone = zone_ids[(index * 17 + peak_offset) % len(zone_ids)]
             dropoff_zone = zone_ids[(index * 31 + 7 + peak_offset) % len(zone_ids)]

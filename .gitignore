@@ -7,6 +7,8 @@ data/raw/*
 !data/raw/.gitkeep
 data/reference/*
 !data/reference/.gitkeep
+# Local NYC TLC Parquet files are mounted as an external training source.
+Nyc taxi trip record/
 data/curated/*
 !data/curated/.gitkeep
 data/results/*

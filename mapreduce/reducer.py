@@ -1,4 +1,4 @@
-"""Reducer for the demand aggregation key."""
+"""Reducer for the hotspot observation key."""
 
 import sys
 

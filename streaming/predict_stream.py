@@ -3,13 +3,23 @@ import os
 from pymongo import MongoClient, ReplaceOne
 from pyspark.ml import PipelineModel
 from pyspark.sql import SparkSession
-from pyspark.sql.functions import col, dayofweek, from_json, hour, to_timestamp
+from pyspark.sql.functions import (
+    col,
+    dayofweek,
+    from_json,
+    greatest,
+    hour,
+    least,
+    lit,
+    to_timestamp,
+    when,
+)
 from pyspark.sql.types import StringType, StructField, StructType
 
 
-spark = SparkSession.builder.appName("taxi-demand-streaming-predictor").getOrCreate()
+spark = SparkSession.builder.appName("taxi-hotspot-streaming-predictor").getOrCreate()
 spark.sparkContext.setLogLevel("WARN")
-model = PipelineModel.load("file:///models/gbt_demand_model")
+model = PipelineModel.load("file:///models/hotspot_model")
 schema = StructType(
     [
         StructField("event_id", StringType()),
@@ -30,7 +40,17 @@ def write_predictions(batch, batch_id):
             "pickup_datetime",
             "pickup_zone",
             "dropoff_zone",
-            col("prediction").cast("double"),
+            least(
+                greatest(col("predicted_hotspot_score"), lit(0.0)),
+                lit(100.0),
+            ).cast("double").alias("hotspot_score"),
+        )
+        .withColumn(
+            "hotspot_level",
+            when(col("hotspot_score") >= 75, "Rất nóng")
+            .when(col("hotspot_score") >= 50, "Nóng")
+            .when(col("hotspot_score") >= 25, "Trung bình")
+            .otherwise("Thấp"),
         )
         .collect()
     )
@@ -39,7 +59,7 @@ def write_predictions(batch, batch_id):
         return
     client = MongoClient(os.getenv("MONGO_URI", "mongodb://mongodb:27017"))
     collection = client[os.getenv("MONGO_DATABASE", "taxi")][
-        os.getenv("MONGO_COLLECTION", "demand_predictions")
+        os.getenv("MONGO_COLLECTION", "hotspot_predictions")
     ]
     for document in documents:
         document["event_time"] = document.pop("pickup_datetime")
@@ -49,7 +69,7 @@ def write_predictions(batch, batch_id):
         ordered=False,
     )
     client.close()
-    print(f"[PASS] MongoDB receiving predictions: {len(documents)}", flush=True)
+    print(f"[PASS] MongoDB receiving hotspot scores: {len(documents)}", flush=True)
 
 
 events = (
@@ -69,7 +89,7 @@ events = (
 
 query = (
     events.writeStream.foreachBatch(write_predictions)
-    .option("checkpointLocation", os.getenv("CHECKPOINT_LOCATION", "/checkpoints/taxi-demand"))
+    .option("checkpointLocation", os.getenv("CHECKPOINT_LOCATION", "/checkpoints/taxi-hotspot"))
     .trigger(processingTime="2 seconds")
     .start()
 )
