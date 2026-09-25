@@ -5,6 +5,8 @@ import math
 import os
 import time
 from datetime import datetime, timedelta, timezone
+from urllib.parse import quote
+import requests
 from kafka import KafkaProducer
 from kafka.errors import KafkaError, NoBrokersAvailable
 
@@ -22,6 +24,11 @@ source_limit = int(os.getenv("SIMULATION_SOURCE_ROWS", "10000"))
 simulation_timezone_offset = int(os.getenv("SIMULATION_TIMEZONE_OFFSET_HOURS", "7"))
 event_time_step_seconds = float(os.getenv("SIMULATION_EVENT_TIME_STEP_SECONDS", "30"))
 simulation_timezone = timezone(timedelta(hours=simulation_timezone_offset))
+router_url = os.getenv("ROUTING_BASE_URL", "https://router.project-osrm.org").rstrip("/")
+route_retry_seconds = float(os.getenv("ROUTE_RETRY_SECONDS", "30"))
+route_request_interval = float(os.getenv("ROUTE_REQUEST_INTERVAL_SECONDS", "1.1"))
+last_route_request_at = 0.0
+route_session = requests.Session()
 producer = None
 for _ in range(60):
     try:
@@ -66,6 +73,13 @@ def initial_vehicle_state(vehicle_index):
         "status": "occupied" if vehicle_index % 4 == 0 else "available",
         "pickup_zone": str(4 + ((vehicle_index * 17) % 260)),
         "dropoff_zone": str(4 + ((vehicle_index * 29 + 23) % 260)),
+        "route_coordinates": [],
+        "route_segment_index": 0,
+        "route_segment_progress_m": 0.0,
+        "route_distance_m": 0.0,
+        "route_remaining_m": 0.0,
+        "route_retry_at": 0.0,
+        "route_error": None,
     }
 
 
@@ -111,12 +125,53 @@ def source_rows():
             yield row
 
 
-def route_distance_km(latitude, longitude, destination_latitude, destination_longitude):
-    # One degree of longitude is approximately 83 km around New York City.
-    return math.hypot(
-        (destination_latitude - latitude) * 111.0,
-        (destination_longitude - longitude) * 83.0,
-    )
+def route_distance_m(first, second):
+    """Great-circle distance between two [longitude, latitude] route points."""
+    lon1, lat1 = map(math.radians, first)
+    lon2, lat2 = map(math.radians, second)
+    dlat, dlon = lat2 - lat1, lon2 - lon1
+    value = math.sin(dlat / 2) ** 2 + math.cos(lat1) * math.cos(lat2) * math.sin(dlon / 2) ** 2
+    return 6_371_000 * 2 * math.atan2(math.sqrt(value), math.sqrt(max(0, 1 - value)))
+
+
+def clear_route(state):
+    state["route_coordinates"] = []
+    state["route_segment_index"] = 0
+    state["route_segment_progress_m"] = 0.0
+    state["route_distance_m"] = 0.0
+    state["route_remaining_m"] = 0.0
+
+
+def request_drive_route(state, now):
+    """Fetch an OSRM driving route; leave the vehicle stopped if unavailable."""
+    global last_route_request_at
+    if now < state["route_retry_at"] or now - last_route_request_at < route_request_interval:
+        return False
+    last_route_request_at = now
+    start = f'{state["longitude"]},{state["latitude"]}'
+    end = f'{state["destination_longitude"]},{state["destination_latitude"]}'
+    url = f"{router_url}/route/v1/driving/{quote(start, safe=',')};{quote(end, safe=',')}"
+    try:
+        response = route_session.get(url, params={"overview": "full", "geometries": "geojson", "steps": "false"}, timeout=5)
+        response.raise_for_status()
+        payload = response.json()
+        routes = payload.get("routes") or []
+        coordinates = routes[0]["geometry"]["coordinates"] if routes else []
+        if payload.get("code") != "Ok" or len(coordinates) < 2:
+            raise ValueError(payload.get("message") or payload.get("code") or "OSRM returned no route")
+        state["route_coordinates"] = coordinates
+        state["route_segment_index"] = 0
+        state["route_segment_progress_m"] = 0.0
+        state["route_distance_m"] = float(routes[0]["distance"])
+        state["route_remaining_m"] = state["route_distance_m"]
+        state["latitude"], state["longitude"] = coordinates[0][1], coordinates[0][0]
+        state["route_error"] = None
+        return True
+    except (requests.RequestException, ValueError, KeyError, IndexError, TypeError) as error:
+        clear_route(state)
+        state["route_error"] = str(error)[:180]
+        state["route_retry_at"] = now + route_retry_seconds
+        return False
 
 
 def start_next_route(state):
@@ -129,46 +184,50 @@ def start_next_route(state):
     state["status"] = "occupied" if (state["vehicle_index"] + state["trip_number"]) % 4 == 0 else "available"
     state["pickup_zone"] = state["dropoff_zone"]
     state["dropoff_zone"] = str(4 + ((state["vehicle_index"] * 29 + state["trip_number"] * 5) % 260))
+    clear_route(state)
+    state["route_retry_at"] = 0.0
+    state["route_error"] = None
 
 
 def advance_vehicle(state, elapsed_seconds):
     status = state["status"]
     speed_kmh = 28 + (state["vehicle_index"] * 7 + state["trip_number"]) % 24 if status == "occupied" else 14 + state["vehicle_index"] % 10
-    destination_latitude = state["destination_latitude"]
-    destination_longitude = state["destination_longitude"]
-    remaining_km = route_distance_km(
-        state["latitude"], state["longitude"], destination_latitude, destination_longitude
-    )
-    step_km = speed_kmh * elapsed_seconds / 3600
-    if remaining_km <= max(step_km, 0.05):
-        state["latitude"] = destination_latitude
-        state["longitude"] = destination_longitude
-        start_next_route(state)
-        status = state["status"]
-        speed_kmh = 28 + (state["vehicle_index"] * 7 + state["trip_number"]) % 24 if status == "occupied" else 14 + state["vehicle_index"] % 10
-        remaining_km = route_distance_km(
-            state["latitude"], state["longitude"], state["destination_latitude"], state["destination_longitude"]
-        )
-    else:
-        ratio = step_km / remaining_km
-        state["latitude"] += (destination_latitude - state["latitude"]) * ratio
-        state["longitude"] += (destination_longitude - state["longitude"]) * ratio
-        remaining_km -= step_km
+    now = time.monotonic()
+    if not state["route_coordinates"] and not request_drive_route(state, now):
+        state["speed_kmh"] = 0.0
+        return 0.0, state["route_remaining_m"] / 1000, 0.0, 0.0
 
-    heading = math.degrees(
-        math.atan2(
-            state["destination_longitude"] - state["longitude"],
-            state["destination_latitude"] - state["latitude"],
-        )
-    )
-    total_km = route_distance_km(
-        state["route_start_latitude"],
-        state["route_start_longitude"],
-        state["destination_latitude"],
-        state["destination_longitude"],
-    )
-    progress = 0 if total_km == 0 else max(0, min(100, (1 - remaining_km / total_km) * 100))
-    return speed_kmh, remaining_km, heading, progress
+    coordinates = state["route_coordinates"]
+    remaining_movement = speed_kmh * elapsed_seconds / 3.6
+    index = state["route_segment_index"]
+    while index < len(coordinates) - 1:
+        segment_length = route_distance_m(coordinates[index], coordinates[index + 1])
+        available = max(0.0, segment_length - state["route_segment_progress_m"])
+        if remaining_movement < available:
+            state["route_segment_progress_m"] += remaining_movement
+            ratio = state["route_segment_progress_m"] / max(segment_length, 0.001)
+            lon = coordinates[index][0] + (coordinates[index + 1][0] - coordinates[index][0]) * ratio
+            lat = coordinates[index][1] + (coordinates[index + 1][1] - coordinates[index][1]) * ratio
+            state["latitude"], state["longitude"] = lat, lon
+            remaining_movement = 0
+            break
+        remaining_movement -= available
+        index += 1
+        state["route_segment_index"] = index
+        state["route_segment_progress_m"] = 0.0
+        state["latitude"], state["longitude"] = coordinates[index][1], coordinates[index][0]
+    if index >= len(coordinates) - 1:
+        start_next_route(state)
+        return 0.0, 0.0, 0.0, 100.0
+
+    state["route_remaining_m"] = sum(
+        route_distance_m(coordinates[position], coordinates[position + 1])
+        for position in range(index, len(coordinates) - 1)
+    ) - state["route_segment_progress_m"]
+    next_point = coordinates[index + 1]
+    heading = math.degrees(math.atan2(next_point[0] - state["longitude"], next_point[1] - state["latitude"]))
+    progress = max(0, min(100, (1 - state["route_remaining_m"] / max(state["route_distance_m"], 1)) * 100))
+    return speed_kmh, state["route_remaining_m"] / 1000, heading, progress
 
 
 def send_vehicle_snapshot(cycle_number):
@@ -185,7 +244,7 @@ def send_vehicle_snapshot(cycle_number):
             {
                 "vehicle_id": state["vehicle_id"],
                 "status": state["status"],
-                "route_status": "Đang chở khách" if state["status"] == "occupied" else "Đang tái bố trí tới điểm nóng",
+                "route_status": ("Chưa lấy được tuyến đường" if state["route_error"] else "Đang chờ tuyến đường") if not state["route_coordinates"] else ("Đang chở khách" if state["status"] == "occupied" else "Đang tái bố trí tới điểm nóng"),
                 "pickup_zone": state["pickup_zone"],
                 "dropoff_zone": state["dropoff_zone"],
                 "latitude": round(state["latitude"], 6),
@@ -198,6 +257,8 @@ def send_vehicle_snapshot(cycle_number):
                 "eta_minutes": round(remaining_km / max(speed_kmh, 1) * 60, 1),
                 "updated_at": updated_at,
                 "simulation_cycle": cycle_number + 1,
+                "route_source": "OpenStreetMap via OSRM" if state["route_coordinates"] else None,
+                "route_error": state["route_error"],
             }
         )
     for event in events:
