@@ -1,0 +1,9 @@
+collected_at=2026-09-25T10:03:03.9927344+07:00
+dashboard_health=True
+hotspot_records=True
+upcoming_hotspots=True
+fleet_records=True
+fleet_moved=True
+model_artifact=True
+mongo_records=True
+hdfs_raw_parquet=True
