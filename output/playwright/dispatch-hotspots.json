@@ -1,0 +1,136 @@
+{
+  "hotspots": [
+    {
+      "hotspot_level": "Rất nóng",
+      "hotspot_score": 85.68,
+      "sample_count": 580,
+      "zone": "236"
+    },
+    {
+      "hotspot_level": "Rất nóng",
+      "hotspot_score": 85.28,
+      "sample_count": 1299,
+      "zone": "237"
+    },
+    {
+      "hotspot_level": "Nóng",
+      "hotspot_score": 73.64,
+      "sample_count": 1224,
+      "zone": "161"
+    },
+    {
+      "hotspot_level": "Nóng",
+      "hotspot_score": 67.72,
+      "sample_count": 801,
+      "zone": "132"
+    },
+    {
+      "hotspot_level": "Nóng",
+      "hotspot_score": 55.4,
+      "sample_count": 689,
+      "zone": "186"
+    },
+    {
+      "hotspot_level": "Nóng",
+      "hotspot_score": 53.42,
+      "sample_count": 744,
+      "zone": "162"
+    },
+    {
+      "hotspot_level": "Nóng",
+      "hotspot_score": 52.73,
+      "sample_count": 1200,
+      "zone": "239"
+    },
+    {
+      "hotspot_level": "Nóng",
+      "hotspot_score": 52.35,
+      "sample_count": 1490,
+      "zone": "142"
+    },
+    {
+      "hotspot_level": "Trung bình",
+      "hotspot_score": 48.55,
+      "sample_count": 992,
+      "zone": "170"
+    },
+    {
+      "hotspot_level": "Trung bình",
+      "hotspot_score": 48.21,
+      "sample_count": 12,
+      "zone": "230"
+    }
+  ],
+  "recommendations": [
+    {
+      "from_zone": "74",
+      "hotspot_score": 85.68,
+      "reason": "Khu vực có khả năng nóng cao",
+      "target_zone": "236",
+      "vehicle_id": "NYC-TAXI-001"
+    },
+    {
+      "from_zone": "93",
+      "hotspot_score": 85.28,
+      "reason": "Khu vực có khả năng nóng cao",
+      "target_zone": "237",
+      "vehicle_id": "NYC-TAXI-002"
+    },
+    {
+      "from_zone": "112",
+      "hotspot_score": 73.64,
+      "reason": "Khu vực có khả năng nóng cao",
+      "target_zone": "161",
+      "vehicle_id": "NYC-TAXI-003"
+    },
+    {
+      "from_zone": "136",
+      "hotspot_score": 67.72,
+      "reason": "Khu vực có khả năng nóng cao",
+      "target_zone": "132",
+      "vehicle_id": "NYC-TAXI-004"
+    },
+    {
+      "from_zone": "185",
+      "hotspot_score": 55.4,
+      "reason": "Khu vực có khả năng nóng cao",
+      "target_zone": "186",
+      "vehicle_id": "NYC-TAXI-005"
+    },
+    {
+      "from_zone": "194",
+      "hotspot_score": 53.42,
+      "reason": "Khu vực có khả năng nóng cao",
+      "target_zone": "162",
+      "vehicle_id": "NYC-TAXI-006"
+    },
+    {
+      "from_zone": "222",
+      "hotspot_score": 52.73,
+      "reason": "Khu vực có khả năng nóng cao",
+      "target_zone": "239",
+      "vehicle_id": "NYC-TAXI-008"
+    },
+    {
+      "from_zone": "90",
+      "hotspot_score": 52.35,
+      "reason": "Khu vực có khả năng nóng cao",
+      "target_zone": "142",
+      "vehicle_id": "NYC-TAXI-010"
+    },
+    {
+      "from_zone": "94",
+      "hotspot_score": 48.55,
+      "reason": "Khu vực có khả năng nóng cao",
+      "target_zone": "170",
+      "vehicle_id": "NYC-TAXI-011"
+    },
+    {
+      "from_zone": "118",
+      "hotspot_score": 48.21,
+      "reason": "Khu vực có khả năng nóng cao",
+      "target_zone": "230",
+      "vehicle_id": "NYC-TAXI-012"
+    }
+  ]
+}

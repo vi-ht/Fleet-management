@@ -52,7 +52,7 @@ PAGE = """
 
   <div id="tong-quan" class="cards"><div class="card"><div class="label">Dashboard API</div><div class="value small" id="pipeline">Đang kết nối</div></div><div class="card"><div class="label">Xe trên hệ thống</div><div class="value" id="fleetTotal">—</div></div><div class="card"><div class="label">Xe đang di chuyển</div><div class="value green" id="fleetMoving">—</div></div><div class="card"><div class="label">Xe đang rảnh</div><div class="value green" id="fleetAvailable">—</div></div><div class="card"><div class="label">Xe đang có khách</div><div class="value orange" id="fleetOccupied">—</div></div><div class="card"><div class="label">Bản ghi dự báo</div><div class="value" id="count">—</div></div><div class="card"><div class="label">Khu vực có dữ liệu</div><div class="value" id="zones">—</div></div><div class="card"><div class="label">RMSE / MAE · holdout</div><div class="value small" id="modelMetrics">Chưa có chỉ số</div></div></div>
 
-  <div id="ban-do" class="map-layout"><section><div class="section-head"><h2>Bản đồ xe và khu vực có nhu cầu</h2><span class="hint">Vùng đỏ đậm hơn = hotspot cao hơn · Kafka simulation</span></div><div id="map"></div><div class="legend"><span><i class="dot available"></i>Đang tái bố trí</span><span><i class="dot occupied"></i>Đang có khách</span><span><i class="dot hotspot"></i>Khu vực có nhu cầu</span><span class="boundary-note">▧ Ranh giới zone mô phỏng</span><span id="movementStatus">—</span><span id="latestVehicle">—</span></div></section><section><div class="section-head"><h2>Danh sách xe</h2><span class="hint" id="fleetCount">—</span></div><div id="fleetList" class="fleet-list"><div class="chart-note">Đang tải dữ liệu xe...</div></div></section></div>
+  <div id="ban-do" class="map-layout"><section><div class="section-head"><h2>Bản đồ xe và khu vực có nhu cầu</h2><span class="hint">Vùng đỏ đậm hơn = hotspot cao hơn · bấm vùng đỏ để xem lý do</span></div><div id="map"></div><div class="legend"><span><i class="dot available"></i>Đang tái bố trí</span><span><i class="dot occupied"></i>Đang có khách</span><span><i class="dot hotspot"></i>Khu vực có nhu cầu</span><span class="boundary-note">▧ Ranh giới zone mô phỏng</span><span id="movementStatus">—</span><span id="latestVehicle">—</span></div></section><section><div class="section-head"><h2>Danh sách xe</h2><span class="hint" id="fleetCount">—</span></div><div id="fleetList" class="fleet-list"><div class="chart-note">Đang tải dữ liệu xe...</div></div></section></div>
 
   <div id="du-bao" class="main-grid"><section><h2>Mức độ nóng theo giờ</h2><div class="chart-wrap"><svg id="trend" role="img" aria-label="Điểm nóng trung bình theo giờ, thang 0 đến 100" viewBox="0 0 760 240" preserveAspectRatio="none"><defs><linearGradient id="area" x1="0" x2="0" y1="0" y2="1"><stop offset="0" stop-color="#55d6be" stop-opacity=".45"/><stop offset="1" stop-color="#55d6be" stop-opacity="0"/></linearGradient></defs><path class="axis" d="M30 210H750M30 115H750M30 20H750"/><text class="axis-label" x="2" y="24">100</text><text class="axis-label" x="8" y="119">50</text><text class="axis-label" x="18" y="214">0</text><text id="trendEmpty" class="axis-label" x="390" y="118" text-anchor="middle">Chưa có dữ liệu theo giờ</text><path id="areaPath" class="area"/><path id="linePath" class="line"/></svg></div><div class="chart-note">Điểm nóng trung bình theo thang 0–100; 100 là mức nóng nhất.</div></section><section><h2>Top điểm nóng</h2><div id="ranking" class="bars"><div class="chart-note">Đang tải...</div></div></section></div>
   <section id="dieu-phoi" style="margin-bottom:16px"><div class="section-head"><h2>Điều phối taxi đề xuất</h2><span class="hint">Ghép xe rảnh vào điểm nóng</span></div><div id="dispatch" class="dispatch-grid"><div class="chart-note">Đang tính đề xuất...</div></div></section>
@@ -72,7 +72,7 @@ function drawTrend(series){const values=series.map(x=>Number(x.value||0)),max=10
   if(!zoneBoundaryLayer||!knownZones.length)return;
   zoneBoundaryLayer.clearLayers();
   const hotspotMap={},hotspotBounds=L.latLngBounds();
-  hotspots.forEach(item=>{hotspotMap[String(item.zone)]={hotspot_score:Number(item.hotspot_score||0)};});
+  hotspots.forEach(item=>{hotspotMap[String(item.zone)]={hotspot_score:Number(item.hotspot_score||0),sample_count:Number(item.sample_count||0)};});
   const minLat=40.68,minLon=-74.02,latStep=.0138,lonStep=.007,columns=20;
   knownZones.forEach(zone=>{
    const index=Math.max(0,Number(zone)-4),row=Math.floor(index/columns),column=index%columns;
@@ -80,7 +80,14 @@ function drawTrend(series){const values=series.map(x=>Number(x.value||0)),max=10
    const fillColor=score>=75?'#dc2626':score>=50?'#ef4444':score>=25?'#f87171':'#fca5a5';
    const corners=[[lat,lon],[lat+latStep,lon],[lat+latStep,lon+lonStep],[lat,lon+lonStep]];
    const polygon=L.polygon(corners,{pane:'demandPane',color:hotspot?'#b91c1c':'#436181',weight:hotspot?2:.7,fillColor:hotspot?fillColor:'#1c3858',fillOpacity:hotspot?.4:.015,interactive:true});
-   polygon.bindTooltip(`Khu ${esc(zone)}${hotspot?` · Nhu cầu cao · Hotspot ${score.toFixed(0)}/100`:''}`,{sticky:true,direction:'top'});
+   if(hotspot){
+    const level=score>=75?'Rất nóng':score>=50?'Nóng':score>=25?'Trung bình':'Thấp';
+    const samples=Number(hotspot.sample_count||0).toLocaleString();
+    polygon.bindTooltip(`Khu ${esc(zone)} · Hotspot ${score.toFixed(0)}/100`,{sticky:true,direction:'top'});
+    polygon.bindPopup(`<strong>Khu ${esc(zone)} · ${level}</strong><p><b>Điểm hotspot trung bình: ${score.toFixed(0)}/100</b></p><p>Đây là trung bình của ${samples} bản ghi dự báo đã lưu cho khu vực này.</p><p><b>Vì sao nhu cầu cao?</b> Model học mật độ chuyến đón NYC TLC theo khu vực, giờ và thứ trong tuần. Điểm cao nghĩa là model dự đoán khu này thường có nhiều lượt đón hơn các khu khác trong cùng khung giờ và thứ; đây là điểm tương đối, không phải số chuyến thực tế.</p>`,{maxWidth:300});
+   }else{
+    polygon.bindTooltip(`Khu ${esc(zone)} · Chưa nằm trong top hotspot hiện tại`,{sticky:true,direction:'top'});
+   }
    polygon.addTo(zoneBoundaryLayer);
    if(hotspot){
     hotspotBounds.extend(corners);
@@ -172,7 +179,7 @@ def dispatch():
     hotspots = list(
         collection.aggregate(
             [
-                {"$group": {"_id": "$pickup_zone", "hotspot_score": {"$avg": "$hotspot_score"}}},
+                {"$group": {"_id": "$pickup_zone", "hotspot_score": {"$avg": "$hotspot_score"}, "sample_count": {"$sum": 1}}},
                 {"$sort": {"hotspot_score": -1}},
                 {"$limit": 10},
             ]
@@ -202,6 +209,7 @@ def dispatch():
                     "zone": row.get("_id"),
                     "hotspot_score": round(float(row.get("hotspot_score", 0)), 2),
                     "hotspot_level": hotspot_level(row.get("hotspot_score", 0)),
+                    "sample_count": int(row.get("sample_count", 0)),
                 }
                 for row in hotspots
             ],

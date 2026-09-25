@@ -21,6 +21,8 @@ $health = Invoke-RestMethod "http://localhost:8088/health"
 Save-Json "dashboard_health.json" $health
 $dashboard = Invoke-RestMethod "http://localhost:8088/api/dashboard"
 Save-Json "dashboard_snapshot.json" $dashboard
+$dispatch = Invoke-RestMethod "http://localhost:8088/api/dispatch"
+Save-Json "dispatch_hotspots.json" $dispatch
 $hotspots = Invoke-RestMethod "http://localhost:8088/api/upcoming-hotspots?hours=3"
 Save-Json "upcoming_hotspots.json" $hotspots
 
@@ -60,6 +62,7 @@ $pass = [ordered]@{
     collected_at = (Get-Date).ToString("o")
     dashboard_health = ($health.status -eq "ok")
     hotspot_records = ([int]$dashboard.summary.count -gt 0)
+    hotspot_explanations = (@($dispatch.hotspots).Count -gt 0 -and @($dispatch.hotspots | Where-Object { [int]$_.sample_count -le 0 }).Count -eq 0)
     upcoming_hotspots = (@($hotspots.forecasts).Count -eq 3)
     fleet_records = ($vehiclesAfter.count -ge 40)
     fleet_moved = [bool]$movement.changed

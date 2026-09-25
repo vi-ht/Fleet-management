@@ -69,6 +69,7 @@ Tham khảo cấu trúc cột tại [Yellow Taxi Data Dictionary](https://www.ny
 - Ảnh dashboard đầu ra: [`output/playwright/dashboard-output.png`](output/playwright/dashboard-output.png).
 - Ảnh chi tiết bản đồ và vùng hotspot: [`output/playwright/map-hotspots.png`](output/playwright/map-hotspots.png).
 - Tóm tắt xác minh đã lưu: [`output/playwright/verification-summary.txt`](output/playwright/verification-summary.txt). Lần ghi nhận này xác nhận dashboard/API, hotspot, forecast, đội xe chuyển động, model, MongoDB và 7 Parquet trên HDFS.
+- Dữ liệu hotspot trên map: [`output/playwright/dispatch-hotspots.json`](output/playwright/dispatch-hotspots.json), gồm điểm trung bình và số bản ghi suy luận theo zone.
 - Để thu lại log và JSON chi tiết từ stack đang chạy, dùng `scripts/collect_evidence.ps1`; script lưu kết quả cục bộ trong `evidence/`.
 
 `analytics.py` và `features.py` là các entrypoint mở rộng cho phân tích/feature engineering; pipeline mặc định đã thực hiện feature engineering trong `train_model.py`.
@@ -78,6 +79,8 @@ Tham khảo cấu trúc cột tại [Yellow Taxi Data Dictionary](https://www.ny
 Batch ưu tiên dùng các file NYC TLC Parquet đặt tại `Nyc taxi trip record/Nyc taxi trip record`: MapReduce quét `PULocationID` theo giờ, HDFS lưu Parquet gốc, và Spark ETL đọc trực tiếp Parquet để tạo dữ liệu curated. Nếu thư mục không có, pipeline tự fallback về CSV mô phỏng deterministic. Producer lấy tối đa `SIMULATION_SOURCE_ROWS` bản ghi từ cùng nguồn Parquet để phát sự kiện realtime; ngoài hotspot event, producer còn phát snapshot 40 xe vào topic `taxi_vehicles`, `fleet-tracker` đọc topic này và lưu trạng thái hiện tại vào collection `taxi.vehicle_status` để dashboard hiển thị bản đồ và danh sách xe.
 
 Dashboard tiếng Việt tại `http://localhost:8088/` có điều hướng, filter pickup zone, bản đồ OpenStreetMap, ranh giới zone mô phỏng, marker xe đang chạy, điểm nóng theo thang 0–100, ranking khu vực, điều phối taxi và forecast điểm nóng 3 giờ kế tiếp. Marker được nội suy giữa các snapshot Kafka để chuyển động liền mạch; producer chạy lặp liên tục và dừng bằng `docker compose stop kafka-producer`.
+
+**Vì sao một zone nóng:** model đếm chuyến đón theo zone, giờ và thứ trong tuần từ dữ liệu batch, sau đó chuẩn hóa điểm tương đối 0–100 trong cùng khung giờ/thứ (100 là zone có mật độ đón cao nhất). Streaming áp dụng model này lên sự kiện replay; map hiển thị điểm trung bình và số bản ghi dự báo đã lưu cho từng zone. Bấm vào vùng đỏ để xem điểm, số mẫu và phần giải thích. Điểm hotspot không phải số chuyến thực tế hay nhu cầu live.
 
 Producer dùng simulation clock theo ngày/giờ hiện tại UTC+7, phát event đầu tiên tại thời điểm khởi động và tiến 1 giây mô phỏng cho mỗi event (có thể điều chỉnh bằng `SIMULATION_EVENT_TIME_STEP_SECONDS`). Snapshot đội xe phát mỗi 10 event; xe có tọa độ đích, hướng, tốc độ, tiến độ và ETA. Đây là mô phỏng realtime tăng tốc, không phải GPS xe thật.
 

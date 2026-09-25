@@ -1,6 +1,7 @@
-collected_at=2026-09-25T11:11:10.7937814+07:00
+collected_at=2026-09-25T11:35:11.0172035+07:00
 dashboard_health=True
 hotspot_records=True
+hotspot_explanations=True
 upcoming_hotspots=True
 fleet_records=True
 fleet_moved=True
