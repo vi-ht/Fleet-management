@@ -1,4 +1,3 @@
-import csv
 import hashlib
 import json
 import math
@@ -118,11 +117,9 @@ def source_rows():
                     return
         return
 
-    with open("/data/raw/taxi_trips.csv", encoding="utf-8") as source:
-        for index, row in enumerate(csv.DictReader(source)):
-            if source_limit and index >= source_limit:
-                return
-            yield row
+    raise RuntimeError(
+        f"NYC TLC Parquet source is required; no yellow_tripdata_*.parquet found in {source_dir}"
+    )
 
 
 def route_distance_m(first, second):

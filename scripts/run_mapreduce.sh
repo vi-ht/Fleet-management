@@ -8,10 +8,8 @@ import os
 from collections import Counter
 from pathlib import Path
 
-from mapreduce.baseline import generate
 from scripts.hdfs_client import exists, mkdirs, put_file, set_permission, wait_ready
 
-raw = "/data/raw/taxi_trips.csv"
 marker = "/data/results/mapreduce_SUCCESS"
 remote_output = "/taxi/raw/aggregated/hotspot_observations.csv"
 source_dir = Path(
@@ -21,6 +19,10 @@ source_dir = Path(
     )
 )
 parquet_files = sorted(source_dir.glob("yellow_tripdata_*.parquet"))
+if not parquet_files:
+    raise SystemExit(
+        f"[FAIL] NYC TLC Parquet source is required; no yellow_tripdata_*.parquet found in {source_dir}"
+    )
 wait_ready()
 print("[PASS] HDFS ready", flush=True)
 
@@ -59,16 +61,6 @@ if parquet_files:
     for parquet_file in parquet_files:
         put_file(parquet_file, f"/taxi/raw/parquet/{parquet_file.name}")
     print(f"[INFO] NYC TLC Parquet source selected: {len(parquet_files)} files", flush=True)
-else:
-    generate(raw)
-    with open(raw, encoding="utf-8") as source:
-        for row in csv.DictReader(source):
-            pickup_datetime = row.get("tpep_pickup_datetime") or row.get("pickup_datetime", "")
-            pickup_zone = row.get("PULocationID") or row.get("pickup_zone", "")
-            if pickup_datetime and pickup_zone:
-                counts[(pickup_zone, int(pickup_datetime[11:13]))] += 1
-    put_file(raw, "/taxi/raw/taxi_trips.csv")
-    print("[INFO] Synthetic fallback source selected", flush=True)
 
 aggregated = "/data/results/mapreduce_hotspot_observations.csv"
 with open(aggregated, "w", newline="", encoding="utf-8") as output:

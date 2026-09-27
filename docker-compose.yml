@@ -152,8 +152,6 @@ services:
       HDFS_URI: hdfs://namenode:9000
       RAW_DATA_PATH: /workspace/Nyc taxi trip record/Nyc taxi trip record
       FORCE_BATCH: ${FORCE_BATCH:-false}
-      SIMULATION_REFRESH: ${SIMULATION_REFRESH:-false}
-      SIMULATION_ROWS: ${SIMULATION_ROWS:-10000}
     volumes:
       - .:/workspace
       - ./data:/data
