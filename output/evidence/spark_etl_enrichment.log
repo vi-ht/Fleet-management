@@ -1,0 +1,51 @@
+ Container taxi-demand-spark-etl-run-850be5f5fe4e Creating
+ Container taxi-demand-spark-etl-run-850be5f5fe4e Created
+26/10/03 20:45:43 INFO SparkContext: Running Spark version 3.5.3
+26/10/03 20:45:43 INFO SparkContext: OS info Linux, 7.0.12-linuxkit, amd64
+26/10/03 20:45:43 INFO SparkContext: Java version 17.0.12
+26/10/03 20:45:43 WARN NativeCodeLoader: Unable to load native-hadoop library for your platform... using builtin-java classes where applicable
+26/10/03 20:45:43 INFO ResourceUtils: ==============================================================
+26/10/03 20:45:43 INFO ResourceUtils: No custom resources configured for spark.driver.
+26/10/03 20:45:43 INFO ResourceUtils: ==============================================================
+26/10/03 20:45:43 INFO SparkContext: Submitted application: taxi-hotspot-etl
+26/10/03 20:45:43 INFO ResourceProfile: Default ResourceProfile created, executor resources: Map(memory -> name: memory, amount: 1024, script: , vendor: , offHeap -> name: offHeap, amount: 0, script: , vendor: ), task resources: Map(cpus -> name: cpus, amount: 1.0)
+26/10/03 20:45:43 INFO ResourceProfile: Limiting resource is cpu
+26/10/03 20:45:43 INFO ResourceProfileManager: Added ResourceProfile id: 0
+26/10/03 20:45:43 INFO SecurityManager: Changing view acls to: spark
+26/10/03 20:45:43 INFO SecurityManager: Changing modify acls to: spark
+26/10/03 20:45:43 INFO SecurityManager: Changing view acls groups to:
+26/10/03 20:45:43 INFO SecurityManager: Changing modify acls groups to:
+26/10/03 20:45:43 INFO SecurityManager: SecurityManager: authentication disabled; ui acls disabled; users with view permissions: spark; groups with view permissions: EMPTY; users with modify permissions: spark; groups with modify permissions: EMPTY
+26/10/03 20:45:44 INFO Utils: Successfully started service 'sparkDriver' on port 34477.
+26/10/03 20:45:44 INFO SparkEnv: Registering MapOutputTracker
+26/10/03 20:45:44 INFO SparkEnv: Registering BlockManagerMaster
+26/10/03 20:45:44 INFO BlockManagerMasterEndpoint: Using org.apache.spark.storage.DefaultTopologyMapper for getting topology information
+26/10/03 20:45:44 INFO BlockManagerMasterEndpoint: BlockManagerMasterEndpoint up
+26/10/03 20:45:44 INFO SparkEnv: Registering BlockManagerMasterHeartbeat
+26/10/03 20:45:44 INFO DiskBlockManager: Created local directory at /tmp/blockmgr-fb746948-37ae-4ebf-a0f7-4d873d4eb282
+26/10/03 20:45:44 INFO MemoryStore: MemoryStore started with capacity 434.4 MiB
+26/10/03 20:45:44 INFO SparkEnv: Registering OutputCommitCoordinator
+26/10/03 20:45:44 INFO JettyUtils: Start Jetty 0.0.0.0:4040 for SparkUI
+26/10/03 20:45:44 INFO Utils: Successfully started service 'SparkUI' on port 4040.
+26/10/03 20:45:44 INFO StandaloneAppClient$ClientEndpoint: Connecting to master spark://spark-master:7077...
+26/10/03 20:45:45 INFO TransportClientFactory: Successfully created connection to spark-master/172.19.0.12:7077 after 38 ms (0 ms spent in bootstraps)
+26/10/03 20:45:45 INFO StandaloneSchedulerBackend: Connected to Spark cluster with app ID app-20261003204545-0003
+26/10/03 20:45:45 INFO Utils: Successfully started service 'org.apache.spark.network.netty.NettyBlockTransferService' on port 34321.
+26/10/03 20:45:45 INFO NettyBlockTransferService: Server created on 6865bcf24426:34321
+26/10/03 20:45:45 INFO BlockManager: Using org.apache.spark.storage.RandomBlockReplicationPolicy for block replication policy
+26/10/03 20:45:45 INFO BlockManagerMaster: Registering BlockManager BlockManagerId(driver, 6865bcf24426, 34321, None)
+26/10/03 20:45:45 INFO BlockManagerMasterEndpoint: Registering block manager 6865bcf24426:34321 with 434.4 MiB RAM, BlockManagerId(driver, 6865bcf24426, 34321, None)
+26/10/03 20:45:45 INFO BlockManagerMaster: Registered BlockManager BlockManagerId(driver, 6865bcf24426, 34321, None)
+26/10/03 20:45:45 INFO BlockManager: Initialized BlockManager: BlockManagerId(driver, 6865bcf24426, 34321, None)
+26/10/03 20:45:45 INFO StandaloneSchedulerBackend: SchedulerBackend is ready for scheduling beginning after reached minRegisteredResourcesRatio: 0.0
+26/10/03 20:46:02 WARN TaskSchedulerImpl: Initial job has not accepted any resources; check your cluster UI to ensure that workers are registered and have sufficient resources
+26/10/03 20:46:17 WARN TaskSchedulerImpl: Initial job has not accepted any resources; check your cluster UI to ensure that workers are registered and have sufficient resources
+26/10/03 20:46:32 WARN TaskSchedulerImpl: Initial job has not accepted any resources; check your cluster UI to ensure that workers are registered and have sufficient resources
+26/10/03 20:46:47 WARN TaskSchedulerImpl: Initial job has not accepted any resources; check your cluster UI to ensure that workers are registered and have sufficient resources
+26/10/03 20:47:02 WARN TaskSchedulerImpl: Initial job has not accepted any resources; check your cluster UI to ensure that workers are registered and have sufficient resources
+26/10/03 20:47:17 WARN TaskSchedulerImpl: Initial job has not accepted any resources; check your cluster UI to ensure that workers are registered and have sufficient resources
+26/10/03 20:47:32 WARN TaskSchedulerImpl: Initial job has not accepted any resources; check your cluster UI to ensure that workers are registered and have sufficient resources
+[INFO] Reading NYC TLC Parquet from HDFS
+[PASS] Taxi Zone Lookup enrichment: lookup_rows=265, rows_before=26116976, rows_after=26116976, unmatched_pickup=0, unmatched_dropoff=0; broadcast joins
+[PASS] Spark ETL completed
+[PASS] Parquet generated

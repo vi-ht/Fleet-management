@@ -25,7 +25,11 @@
   },
   {
     "path": "output/evidence/docx_render_check.json",
-    "sha256": "bd3e2261112989a2816207fe438c3d547fe1bfe29120ae6f5b8674b89a2040bf"
+    "sha256": "5e905a6907431f5c324bee3175e9c182e8853cf43b3ecf9ed7151444c72f5229"
+  },
+  {
+    "path": "output/evidence/spark_etl_enrichment.log",
+    "sha256": "d8508047cde57b578e1adbbc85f1e339bb2d5287b0a1951f32465d3cf9cc8346"
   },
   {
     "path": "output/evidence/hdfs_raw_parquet_files.txt",
@@ -37,7 +41,7 @@
   },
   {
     "path": "output/evidence/hdfs_curated_parquet.txt",
-    "sha256": "43990604fea0f1c6780a53fd71028d57abc0325cf660a94658bc9959b9e2e69e"
+    "sha256": "b83810bf07e030049fa1c8f979d59e5b8dbcb0bf6e4d0e31f9af5340e12bedb3"
   },
   {
     "path": "output/evidence/kafka_topics.txt",
@@ -74,10 +78,6 @@
   {
     "path": "output/evidence/dashboard_snapshot.json",
     "sha256": "2cfdea96e5a89569e6f1265b6eb9d0471ff37d40a12cd1d10a2c005e46da297a"
-  },
-  {
-    "path": "output/evidence/model_metrics.json",
-    "sha256": "399e34da5b8eeb60ec61647e6c0ddb4aade9fe18dc3055d138daaf5d078b101d"
   },
   {
     "path": "output/evidence/hadoop_streaming.log",
@@ -141,6 +141,10 @@
   },
   {
     "path": "output/documents/BDA501_Final_Project_Report_Submission.docx",
-    "sha256": "386feb8dd764b6c529669396fad306596004000268284443376433f7d4d62fe9"
+    "sha256": "e39a6432d5ba8084c05c325070137048f1d3d16a66c152b3f8e732cb31e7d376"
+  },
+  {
+    "path": "output/documents/BDA501_Final_Project_QA_QC_Review.docx",
+    "sha256": "e9885d838d0e90a3c23b51fb9f28104505ac01ebbf78093193aec1de4c3e10b9"
   }
 ]

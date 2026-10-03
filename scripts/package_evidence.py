@@ -19,6 +19,7 @@ SOURCES = (
     "evidence/data_profile.json",
     "evidence/verification_summary.json",
     "evidence/docx_render_check.json",
+    "evidence/spark_etl_enrichment.log",
     "evidence/hdfs_raw_parquet_files.txt",
     "evidence/hdfs_raw_checksums.txt",
     "evidence/hdfs_curated_parquet.txt",
@@ -40,7 +41,7 @@ SOURCES = (
     "data/results/performance_benchmark.json",
 )
 
-PRESENTATION_ARTIFACTS = (
+HASHED_ARTIFACTS = (
     "output/playwright/weather-model-dashboard-2026-10-04.png",
     "output/playwright/weather-model-map-2026-10-04.png",
     "output/playwright/weather-model-mobile-2026-10-04.png",
@@ -51,6 +52,7 @@ PRESENTATION_ARTIFACTS = (
     "output/evidence/browser_qa_summary_2026-10-04.json",
     "output/evidence/dependency_audit.json",
     "output/documents/BDA501_Final_Project_Report_Submission.docx",
+    "output/documents/BDA501_Final_Project_QA_QC_Review.docx",
 )
 
 
@@ -66,10 +68,16 @@ def main() -> None:
     DESTINATION.mkdir(parents=True, exist_ok=True)
     for relative in SOURCES:
         source = ROOT / relative
+        destination = DESTINATION / source.name
+        if not source.is_file() and destination.is_file():
+            # A fresh clone already contains the last packaged snapshot.
+            # Prefer a newly collected local snapshot when present; otherwise
+            # keep the committed evidence instead of failing on ignored paths.
+            source = destination
         if not source.is_file():
             raise FileNotFoundError(f"Required evidence is missing: {relative}")
-        destination = DESTINATION / source.name
-        copy2(source, destination)
+        if source.resolve() != destination.resolve():
+            copy2(source, destination)
         if source.suffix in {".log", ".txt"}:
             # Drop only insignificant line-end whitespace from tool output so
             # evidence remains readable in diffs; counter values stay intact.
@@ -81,8 +89,11 @@ def main() -> None:
                 encoding="utf-8",
             )
 
-    paths = [DESTINATION / Path(item).name for item in SOURCES]
-    paths.extend(ROOT / item for item in PRESENTATION_ARTIFACTS)
+    # Several runtime locations can contain the same artifact filename.
+    # The copy loop above intentionally keeps the last source as authoritative,
+    # so list each destination once in the manifest.
+    paths = list(dict.fromkeys(DESTINATION / Path(item).name for item in SOURCES))
+    paths.extend(ROOT / item for item in HASHED_ARTIFACTS)
     artifacts = []
     for path in paths:
         if path.is_file():
