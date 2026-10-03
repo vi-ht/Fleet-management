@@ -4,8 +4,9 @@ import json
 import math
 import os
 import time
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timedelta
 from urllib.parse import quote
+from zoneinfo import ZoneInfo
 import requests
 from kafka import KafkaProducer
 from kafka.errors import KafkaError, NoBrokersAvailable
@@ -21,9 +22,8 @@ max_events = int(os.getenv("SIMULATION_MAX_EVENTS", "0"))
 vehicle_count = int(os.getenv("SIMULATION_VEHICLES", "40"))
 vehicle_snapshot_interval = int(os.getenv("SIMULATION_VEHICLE_SNAPSHOT_INTERVAL", "100"))
 source_limit = int(os.getenv("SIMULATION_SOURCE_ROWS", "10000"))
-simulation_timezone_offset = int(os.getenv("SIMULATION_TIMEZONE_OFFSET_HOURS", "7"))
+simulation_timezone = ZoneInfo(os.getenv("SIMULATION_TIMEZONE", "America/New_York"))
 event_time_step_seconds = float(os.getenv("SIMULATION_EVENT_TIME_STEP_SECONDS", "30"))
-simulation_timezone = timezone(timedelta(hours=simulation_timezone_offset))
 router_url = os.getenv("ROUTING_BASE_URL", "https://router.project-osrm.org").rstrip("/")
 route_retry_seconds = float(os.getenv("ROUTE_RETRY_SECONDS", "30"))
 route_request_interval = float(os.getenv("ROUTE_REQUEST_INTERVAL_SECONDS", "1.1"))
@@ -274,8 +274,8 @@ while True:
             # Convert the historical replay into a current-day accelerated stream.
             # The raw date is still useful for batch training, but online inference
             # must receive events from the current simulation clock.
-            # Spark's default timestamp parser is most portable with a plain ISO
-            # datetime. The clock itself is configured as UTC+7 for the dashboard.
+            # Spark parses this wall-clock ISO value using the configured
+            # America/New_York session timezone shared with training features.
             pickup_datetime = simulation_clock.replace(tzinfo=None).isoformat(timespec="seconds")
             simulation_clock += timedelta(seconds=event_time_step_seconds)
             pickup_zone = row.get("PULocationID") or row.get("pickup_zone", "")

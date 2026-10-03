@@ -1,0 +1,8 @@
+﻿Found 7 items
+-rw-r--r--   1 root supergroup     56.4 M 2026-10-03 17:36 /taxi/raw/parquet/yellow_tripdata_2025-01.parquet
+-rw-r--r--   1 root supergroup     56.0 M 2026-10-03 17:36 /taxi/raw/parquet/yellow_tripdata_2026-02.parquet
+-rw-r--r--   1 root supergroup     64.7 M 2026-10-03 17:36 /taxi/raw/parquet/yellow_tripdata_2026-03.parquet
+-rw-r--r--   1 root supergroup     61.8 M 2026-10-03 17:36 /taxi/raw/parquet/yellow_tripdata_2026-04.parquet
+-rw-r--r--   1 root supergroup     66.5 M 2026-10-03 17:36 /taxi/raw/parquet/yellow_tripdata_2026-05.parquet
+-rw-r--r--   1 root supergroup     62.4 M 2026-10-03 17:36 /taxi/raw/parquet/yellow_tripdata_2026-06.parquet
+-rw-r--r--   1 root supergroup     58.8 M 2026-10-03 17:36 /taxi/raw/parquet/yellow_tripdata_2026-07.parquet

@@ -1,0 +1,42 @@
+﻿{
+    "vehicle_id":  "NYC-TAXI-001",
+    "before":  {
+                   "destination_latitude":  40.711,
+                   "destination_longitude":  -74.003,
+                   "dropoff_zone":  "27",
+                   "eta_minutes":  9.5,
+                   "heading_degrees":  25.8,
+                   "latitude":  40.681723,
+                   "longitude":  -74.002461,
+                   "pickup_zone":  "4",
+                   "progress_pct":  32.7,
+                   "route_error":  null,
+                   "route_source":  "OpenStreetMap via OSRM",
+                   "route_status":  "Đang chở khách",
+                   "simulation_cycle":  132,
+                   "speed_kmh":  29,
+                   "status":  "occupied",
+                   "updated_at":  "2026-10-03T20:10:38Z",
+                   "vehicle_id":  "NYC-TAXI-001"
+               },
+    "after":  {
+                  "destination_latitude":  40.711,
+                  "destination_longitude":  -74.003,
+                  "dropoff_zone":  "27",
+                  "eta_minutes":  9.4,
+                  "heading_degrees":  25.7,
+                  "latitude":  40.682138,
+                  "longitude":  -74.002261,
+                  "pickup_zone":  "4",
+                  "progress_pct":  33.4,
+                  "route_error":  null,
+                  "route_source":  "OpenStreetMap via OSRM",
+                  "route_status":  "Đang chở khách",
+                  "simulation_cycle":  135,
+                  "speed_kmh":  29,
+                  "status":  "occupied",
+                  "updated_at":  "2026-10-03T20:10:44Z",
+                  "vehicle_id":  "NYC-TAXI-001"
+              },
+    "changed":  true
+}

@@ -1,0 +1,1329 @@
+{
+  "spark_version": "3.5.3",
+  "queries": {
+    "top_zone_hour_dow": {
+      "sql": "SELECT pickup_zone, pickup_zone_name, pickup_borough, pickup_hour,\n               pickup_dow, COUNT(*) AS trip_count\n        FROM curated_trips\n        GROUP BY pickup_zone, pickup_zone_name, pickup_borough,\n                 pickup_hour, pickup_dow\n        ORDER BY trip_count DESC, pickup_zone ASC, pickup_hour ASC\n        LIMIT 20",
+      "rows": [
+        {
+          "pickup_zone": "79",
+          "pickup_zone_name": "East Village",
+          "pickup_borough": "Manhattan",
+          "pickup_hour": 0,
+          "pickup_dow": 0,
+          "trip_count": 21405
+        },
+        {
+          "pickup_zone": "79",
+          "pickup_zone_name": "East Village",
+          "pickup_borough": "Manhattan",
+          "pickup_hour": 1,
+          "pickup_dow": 0,
+          "trip_count": 21064
+        },
+        {
+          "pickup_zone": "79",
+          "pickup_zone_name": "East Village",
+          "pickup_borough": "Manhattan",
+          "pickup_hour": 1,
+          "pickup_dow": 6,
+          "trip_count": 19880
+        },
+        {
+          "pickup_zone": "161",
+          "pickup_zone_name": "Midtown Center",
+          "pickup_borough": "Manhattan",
+          "pickup_hour": 20,
+          "pickup_dow": 3,
+          "trip_count": 19503
+        },
+        {
+          "pickup_zone": "79",
+          "pickup_zone_name": "East Village",
+          "pickup_borough": "Manhattan",
+          "pickup_hour": 0,
+          "pickup_dow": 6,
+          "trip_count": 19321
+        },
+        {
+          "pickup_zone": "161",
+          "pickup_zone_name": "Midtown Center",
+          "pickup_borough": "Manhattan",
+          "pickup_hour": 21,
+          "pickup_dow": 3,
+          "trip_count": 19289
+        },
+        {
+          "pickup_zone": "161",
+          "pickup_zone_name": "Midtown Center",
+          "pickup_borough": "Manhattan",
+          "pickup_hour": 18,
+          "pickup_dow": 3,
+          "trip_count": 19045
+        },
+        {
+          "pickup_zone": "161",
+          "pickup_zone_name": "Midtown Center",
+          "pickup_borough": "Manhattan",
+          "pickup_hour": 21,
+          "pickup_dow": 2,
+          "trip_count": 18933
+        },
+        {
+          "pickup_zone": "161",
+          "pickup_zone_name": "Midtown Center",
+          "pickup_borough": "Manhattan",
+          "pickup_hour": 20,
+          "pickup_dow": 2,
+          "trip_count": 18805
+        },
+        {
+          "pickup_zone": "161",
+          "pickup_zone_name": "Midtown Center",
+          "pickup_borough": "Manhattan",
+          "pickup_hour": 18,
+          "pickup_dow": 2,
+          "trip_count": 18585
+        },
+        {
+          "pickup_zone": "161",
+          "pickup_zone_name": "Midtown Center",
+          "pickup_borough": "Manhattan",
+          "pickup_hour": 18,
+          "pickup_dow": 4,
+          "trip_count": 18425
+        },
+        {
+          "pickup_zone": "161",
+          "pickup_zone_name": "Midtown Center",
+          "pickup_borough": "Manhattan",
+          "pickup_hour": 21,
+          "pickup_dow": 4,
+          "trip_count": 18383
+        },
+        {
+          "pickup_zone": "161",
+          "pickup_zone_name": "Midtown Center",
+          "pickup_borough": "Manhattan",
+          "pickup_hour": 17,
+          "pickup_dow": 4,
+          "trip_count": 18029
+        },
+        {
+          "pickup_zone": "161",
+          "pickup_zone_name": "Midtown Center",
+          "pickup_borough": "Manhattan",
+          "pickup_hour": 20,
+          "pickup_dow": 4,
+          "trip_count": 17822
+        },
+        {
+          "pickup_zone": "161",
+          "pickup_zone_name": "Midtown Center",
+          "pickup_borough": "Manhattan",
+          "pickup_hour": 19,
+          "pickup_dow": 3,
+          "trip_count": 17469
+        },
+        {
+          "pickup_zone": "79",
+          "pickup_zone_name": "East Village",
+          "pickup_borough": "Manhattan",
+          "pickup_hour": 23,
+          "pickup_dow": 6,
+          "trip_count": 17460
+        },
+        {
+          "pickup_zone": "161",
+          "pickup_zone_name": "Midtown Center",
+          "pickup_borough": "Manhattan",
+          "pickup_hour": 17,
+          "pickup_dow": 2,
+          "trip_count": 17349
+        },
+        {
+          "pickup_zone": "161",
+          "pickup_zone_name": "Midtown Center",
+          "pickup_borough": "Manhattan",
+          "pickup_hour": 17,
+          "pickup_dow": 3,
+          "trip_count": 17285
+        },
+        {
+          "pickup_zone": "161",
+          "pickup_zone_name": "Midtown Center",
+          "pickup_borough": "Manhattan",
+          "pickup_hour": 19,
+          "pickup_dow": 4,
+          "trip_count": 17229
+        },
+        {
+          "pickup_zone": "161",
+          "pickup_zone_name": "Midtown Center",
+          "pickup_borough": "Manhattan",
+          "pickup_hour": 19,
+          "pickup_dow": 2,
+          "trip_count": 16316
+        }
+      ],
+      "row_count": 20
+    },
+    "borough_hour_profile": {
+      "sql": "SELECT pickup_borough, pickup_hour, COUNT(*) AS trip_count,\n               COUNT(DISTINCT pickup_zone) AS active_pickup_zones\n        FROM curated_trips\n        WHERE pickup_borough IS NOT NULL\n        GROUP BY pickup_borough, pickup_hour\n        ORDER BY pickup_borough ASC, pickup_hour ASC",
+      "rows": [
+        {
+          "pickup_borough": "Bronx",
+          "pickup_hour": 0,
+          "trip_count": 3467,
+          "active_pickup_zones": 42
+        },
+        {
+          "pickup_borough": "Bronx",
+          "pickup_hour": 1,
+          "trip_count": 1704,
+          "active_pickup_zones": 41
+        },
+        {
+          "pickup_borough": "Bronx",
+          "pickup_hour": 2,
+          "trip_count": 1210,
+          "active_pickup_zones": 42
+        },
+        {
+          "pickup_borough": "Bronx",
+          "pickup_hour": 3,
+          "trip_count": 1713,
+          "active_pickup_zones": 42
+        },
+        {
+          "pickup_borough": "Bronx",
+          "pickup_hour": 4,
+          "trip_count": 4648,
+          "active_pickup_zones": 42
+        },
+        {
+          "pickup_borough": "Bronx",
+          "pickup_hour": 5,
+          "trip_count": 7865,
+          "active_pickup_zones": 42
+        },
+        {
+          "pickup_borough": "Bronx",
+          "pickup_hour": 6,
+          "trip_count": 15309,
+          "active_pickup_zones": 42
+        },
+        {
+          "pickup_borough": "Bronx",
+          "pickup_hour": 7,
+          "trip_count": 19311,
+          "active_pickup_zones": 42
+        },
+        {
+          "pickup_borough": "Bronx",
+          "pickup_hour": 8,
+          "trip_count": 17950,
+          "active_pickup_zones": 43
+        },
+        {
+          "pickup_borough": "Bronx",
+          "pickup_hour": 9,
+          "trip_count": 12659,
+          "active_pickup_zones": 43
+        },
+        {
+          "pickup_borough": "Bronx",
+          "pickup_hour": 10,
+          "trip_count": 9655,
+          "active_pickup_zones": 42
+        },
+        {
+          "pickup_borough": "Bronx",
+          "pickup_hour": 11,
+          "trip_count": 8824,
+          "active_pickup_zones": 43
+        },
+        {
+          "pickup_borough": "Bronx",
+          "pickup_hour": 12,
+          "trip_count": 8782,
+          "active_pickup_zones": 42
+        },
+        {
+          "pickup_borough": "Bronx",
+          "pickup_hour": 13,
+          "trip_count": 9108,
+          "active_pickup_zones": 42
+        },
+        {
+          "pickup_borough": "Bronx",
+          "pickup_hour": 14,
+          "trip_count": 9888,
+          "active_pickup_zones": 43
+        },
+        {
+          "pickup_borough": "Bronx",
+          "pickup_hour": 15,
+          "trip_count": 9116,
+          "active_pickup_zones": 42
+        },
+        {
+          "pickup_borough": "Bronx",
+          "pickup_hour": 16,
+          "trip_count": 8360,
+          "active_pickup_zones": 43
+        },
+        {
+          "pickup_borough": "Bronx",
+          "pickup_hour": 17,
+          "trip_count": 8430,
+          "active_pickup_zones": 42
+        },
+        {
+          "pickup_borough": "Bronx",
+          "pickup_hour": 18,
+          "trip_count": 6617,
+          "active_pickup_zones": 43
+        },
+        {
+          "pickup_borough": "Bronx",
+          "pickup_hour": 19,
+          "trip_count": 5470,
+          "active_pickup_zones": 43
+        },
+        {
+          "pickup_borough": "Bronx",
+          "pickup_hour": 20,
+          "trip_count": 5204,
+          "active_pickup_zones": 43
+        },
+        {
+          "pickup_borough": "Bronx",
+          "pickup_hour": 21,
+          "trip_count": 5113,
+          "active_pickup_zones": 42
+        },
+        {
+          "pickup_borough": "Bronx",
+          "pickup_hour": 22,
+          "trip_count": 5562,
+          "active_pickup_zones": 42
+        },
+        {
+          "pickup_borough": "Bronx",
+          "pickup_hour": 23,
+          "trip_count": 5716,
+          "active_pickup_zones": 42
+        },
+        {
+          "pickup_borough": "Brooklyn",
+          "pickup_hour": 0,
+          "trip_count": 38579,
+          "active_pickup_zones": 61
+        },
+        {
+          "pickup_borough": "Brooklyn",
+          "pickup_hour": 1,
+          "trip_count": 26952,
+          "active_pickup_zones": 61
+        },
+        {
+          "pickup_borough": "Brooklyn",
+          "pickup_hour": 2,
+          "trip_count": 21538,
+          "active_pickup_zones": 61
+        },
+        {
+          "pickup_borough": "Brooklyn",
+          "pickup_hour": 3,
+          "trip_count": 21209,
+          "active_pickup_zones": 60
+        },
+        {
+          "pickup_borough": "Brooklyn",
+          "pickup_hour": 4,
+          "trip_count": 22758,
+          "active_pickup_zones": 61
+        },
+        {
+          "pickup_borough": "Brooklyn",
+          "pickup_hour": 5,
+          "trip_count": 24124,
+          "active_pickup_zones": 61
+        },
+        {
+          "pickup_borough": "Brooklyn",
+          "pickup_hour": 6,
+          "trip_count": 36034,
+          "active_pickup_zones": 61
+        },
+        {
+          "pickup_borough": "Brooklyn",
+          "pickup_hour": 7,
+          "trip_count": 49385,
+          "active_pickup_zones": 61
+        },
+        {
+          "pickup_borough": "Brooklyn",
+          "pickup_hour": 8,
+          "trip_count": 56151,
+          "active_pickup_zones": 61
+        },
+        {
+          "pickup_borough": "Brooklyn",
+          "pickup_hour": 9,
+          "trip_count": 48317,
+          "active_pickup_zones": 61
+        },
+        {
+          "pickup_borough": "Brooklyn",
+          "pickup_hour": 10,
+          "trip_count": 37061,
+          "active_pickup_zones": 61
+        },
+        {
+          "pickup_borough": "Brooklyn",
+          "pickup_hour": 11,
+          "trip_count": 34320,
+          "active_pickup_zones": 61
+        },
+        {
+          "pickup_borough": "Brooklyn",
+          "pickup_hour": 12,
+          "trip_count": 36800,
+          "active_pickup_zones": 61
+        },
+        {
+          "pickup_borough": "Brooklyn",
+          "pickup_hour": 13,
+          "trip_count": 37638,
+          "active_pickup_zones": 61
+        },
+        {
+          "pickup_borough": "Brooklyn",
+          "pickup_hour": 14,
+          "trip_count": 39190,
+          "active_pickup_zones": 61
+        },
+        {
+          "pickup_borough": "Brooklyn",
+          "pickup_hour": 15,
+          "trip_count": 36470,
+          "active_pickup_zones": 61
+        },
+        {
+          "pickup_borough": "Brooklyn",
+          "pickup_hour": 16,
+          "trip_count": 33533,
+          "active_pickup_zones": 61
+        },
+        {
+          "pickup_borough": "Brooklyn",
+          "pickup_hour": 17,
+          "trip_count": 39325,
+          "active_pickup_zones": 61
+        },
+        {
+          "pickup_borough": "Brooklyn",
+          "pickup_hour": 18,
+          "trip_count": 42495,
+          "active_pickup_zones": 61
+        },
+        {
+          "pickup_borough": "Brooklyn",
+          "pickup_hour": 19,
+          "trip_count": 37413,
+          "active_pickup_zones": 61
+        },
+        {
+          "pickup_borough": "Brooklyn",
+          "pickup_hour": 20,
+          "trip_count": 33116,
+          "active_pickup_zones": 61
+        },
+        {
+          "pickup_borough": "Brooklyn",
+          "pickup_hour": 21,
+          "trip_count": 35992,
+          "active_pickup_zones": 61
+        },
+        {
+          "pickup_borough": "Brooklyn",
+          "pickup_hour": 22,
+          "trip_count": 47571,
+          "active_pickup_zones": 61
+        },
+        {
+          "pickup_borough": "Brooklyn",
+          "pickup_hour": 23,
+          "trip_count": 47461,
+          "active_pickup_zones": 61
+        },
+        {
+          "pickup_borough": "EWR",
+          "pickup_hour": 0,
+          "trip_count": 9,
+          "active_pickup_zones": 1
+        },
+        {
+          "pickup_borough": "EWR",
+          "pickup_hour": 1,
+          "trip_count": 5,
+          "active_pickup_zones": 1
+        },
+        {
+          "pickup_borough": "EWR",
+          "pickup_hour": 2,
+          "trip_count": 13,
+          "active_pickup_zones": 1
+        },
+        {
+          "pickup_borough": "EWR",
+          "pickup_hour": 3,
+          "trip_count": 32,
+          "active_pickup_zones": 1
+        },
+        {
+          "pickup_borough": "EWR",
+          "pickup_hour": 4,
+          "trip_count": 70,
+          "active_pickup_zones": 1
+        },
+        {
+          "pickup_borough": "EWR",
+          "pickup_hour": 5,
+          "trip_count": 101,
+          "active_pickup_zones": 1
+        },
+        {
+          "pickup_borough": "EWR",
+          "pickup_hour": 6,
+          "trip_count": 110,
+          "active_pickup_zones": 1
+        },
+        {
+          "pickup_borough": "EWR",
+          "pickup_hour": 7,
+          "trip_count": 116,
+          "active_pickup_zones": 1
+        },
+        {
+          "pickup_borough": "EWR",
+          "pickup_hour": 8,
+          "trip_count": 91,
+          "active_pickup_zones": 1
+        },
+        {
+          "pickup_borough": "EWR",
+          "pickup_hour": 9,
+          "trip_count": 118,
+          "active_pickup_zones": 1
+        },
+        {
+          "pickup_borough": "EWR",
+          "pickup_hour": 10,
+          "trip_count": 125,
+          "active_pickup_zones": 1
+        },
+        {
+          "pickup_borough": "EWR",
+          "pickup_hour": 11,
+          "trip_count": 134,
+          "active_pickup_zones": 1
+        },
+        {
+          "pickup_borough": "EWR",
+          "pickup_hour": 12,
+          "trip_count": 179,
+          "active_pickup_zones": 1
+        },
+        {
+          "pickup_borough": "EWR",
+          "pickup_hour": 13,
+          "trip_count": 284,
+          "active_pickup_zones": 1
+        },
+        {
+          "pickup_borough": "EWR",
+          "pickup_hour": 14,
+          "trip_count": 353,
+          "active_pickup_zones": 1
+        },
+        {
+          "pickup_borough": "EWR",
+          "pickup_hour": 15,
+          "trip_count": 375,
+          "active_pickup_zones": 1
+        },
+        {
+          "pickup_borough": "EWR",
+          "pickup_hour": 16,
+          "trip_count": 318,
+          "active_pickup_zones": 1
+        },
+        {
+          "pickup_borough": "EWR",
+          "pickup_hour": 17,
+          "trip_count": 308,
+          "active_pickup_zones": 1
+        },
+        {
+          "pickup_borough": "EWR",
+          "pickup_hour": 18,
+          "trip_count": 242,
+          "active_pickup_zones": 1
+        },
+        {
+          "pickup_borough": "EWR",
+          "pickup_hour": 19,
+          "trip_count": 202,
+          "active_pickup_zones": 1
+        },
+        {
+          "pickup_borough": "EWR",
+          "pickup_hour": 20,
+          "trip_count": 131,
+          "active_pickup_zones": 1
+        },
+        {
+          "pickup_borough": "EWR",
+          "pickup_hour": 21,
+          "trip_count": 56,
+          "active_pickup_zones": 1
+        },
+        {
+          "pickup_borough": "EWR",
+          "pickup_hour": 22,
+          "trip_count": 24,
+          "active_pickup_zones": 1
+        },
+        {
+          "pickup_borough": "EWR",
+          "pickup_hour": 23,
+          "trip_count": 15,
+          "active_pickup_zones": 1
+        },
+        {
+          "pickup_borough": "Manhattan",
+          "pickup_hour": 0,
+          "trip_count": 665067,
+          "active_pickup_zones": 67
+        },
+        {
+          "pickup_borough": "Manhattan",
+          "pickup_hour": 1,
+          "trip_count": 452662,
+          "active_pickup_zones": 66
+        },
+        {
+          "pickup_borough": "Manhattan",
+          "pickup_hour": 2,
+          "trip_count": 304937,
+          "active_pickup_zones": 66
+        },
+        {
+          "pickup_borough": "Manhattan",
+          "pickup_hour": 3,
+          "trip_count": 210360,
+          "active_pickup_zones": 66
+        },
+        {
+          "pickup_borough": "Manhattan",
+          "pickup_hour": 4,
+          "trip_count": 153468,
+          "active_pickup_zones": 66
+        },
+        {
+          "pickup_borough": "Manhattan",
+          "pickup_hour": 5,
+          "trip_count": 159518,
+          "active_pickup_zones": 66
+        },
+        {
+          "pickup_borough": "Manhattan",
+          "pickup_hour": 6,
+          "trip_count": 325959,
+          "active_pickup_zones": 66
+        },
+        {
+          "pickup_borough": "Manhattan",
+          "pickup_hour": 7,
+          "trip_count": 636061,
+          "active_pickup_zones": 66
+        },
+        {
+          "pickup_borough": "Manhattan",
+          "pickup_hour": 8,
+          "trip_count": 900937,
+          "active_pickup_zones": 66
+        },
+        {
+          "pickup_borough": "Manhattan",
+          "pickup_hour": 9,
+          "trip_count": 950638,
+          "active_pickup_zones": 67
+        },
+        {
+          "pickup_borough": "Manhattan",
+          "pickup_hour": 10,
+          "trip_count": 969403,
+          "active_pickup_zones": 66
+        },
+        {
+          "pickup_borough": "Manhattan",
+          "pickup_hour": 11,
+          "trip_count": 1062114,
+          "active_pickup_zones": 66
+        },
+        {
+          "pickup_borough": "Manhattan",
+          "pickup_hour": 12,
+          "trip_count": 1153322,
+          "active_pickup_zones": 67
+        },
+        {
+          "pickup_borough": "Manhattan",
+          "pickup_hour": 13,
+          "trip_count": 1194656,
+          "active_pickup_zones": 66
+        },
+        {
+          "pickup_borough": "Manhattan",
+          "pickup_hour": 14,
+          "trip_count": 1279633,
+          "active_pickup_zones": 66
+        },
+        {
+          "pickup_borough": "Manhattan",
+          "pickup_hour": 15,
+          "trip_count": 1325745,
+          "active_pickup_zones": 66
+        },
+        {
+          "pickup_borough": "Manhattan",
+          "pickup_hour": 16,
+          "trip_count": 1370102,
+          "active_pickup_zones": 66
+        },
+        {
+          "pickup_borough": "Manhattan",
+          "pickup_hour": 17,
+          "trip_count": 1587319,
+          "active_pickup_zones": 66
+        },
+        {
+          "pickup_borough": "Manhattan",
+          "pickup_hour": 18,
+          "trip_count": 1674198,
+          "active_pickup_zones": 66
+        },
+        {
+          "pickup_borough": "Manhattan",
+          "pickup_hour": 19,
+          "trip_count": 1439651,
+          "active_pickup_zones": 66
+        },
+        {
+          "pickup_borough": "Manhattan",
+          "pickup_hour": 20,
+          "trip_count": 1316376,
+          "active_pickup_zones": 67
+        },
+        {
+          "pickup_borough": "Manhattan",
+          "pickup_hour": 21,
+          "trip_count": 1382730,
+          "active_pickup_zones": 66
+        },
+        {
+          "pickup_borough": "Manhattan",
+          "pickup_hour": 22,
+          "trip_count": 1253746,
+          "active_pickup_zones": 66
+        },
+        {
+          "pickup_borough": "Manhattan",
+          "pickup_hour": 23,
+          "trip_count": 947104,
+          "active_pickup_zones": 67
+        },
+        {
+          "pickup_borough": "N/A",
+          "pickup_hour": 0,
+          "trip_count": 618,
+          "active_pickup_zones": 1
+        },
+        {
+          "pickup_borough": "N/A",
+          "pickup_hour": 1,
+          "trip_count": 591,
+          "active_pickup_zones": 1
+        },
+        {
+          "pickup_borough": "N/A",
+          "pickup_hour": 2,
+          "trip_count": 492,
+          "active_pickup_zones": 1
+        },
+        {
+          "pickup_borough": "N/A",
+          "pickup_hour": 3,
+          "trip_count": 380,
+          "active_pickup_zones": 1
+        },
+        {
+          "pickup_borough": "N/A",
+          "pickup_hour": 4,
+          "trip_count": 395,
+          "active_pickup_zones": 1
+        },
+        {
+          "pickup_borough": "N/A",
+          "pickup_hour": 5,
+          "trip_count": 294,
+          "active_pickup_zones": 1
+        },
+        {
+          "pickup_borough": "N/A",
+          "pickup_hour": 6,
+          "trip_count": 249,
+          "active_pickup_zones": 1
+        },
+        {
+          "pickup_borough": "N/A",
+          "pickup_hour": 7,
+          "trip_count": 261,
+          "active_pickup_zones": 1
+        },
+        {
+          "pickup_borough": "N/A",
+          "pickup_hour": 8,
+          "trip_count": 299,
+          "active_pickup_zones": 1
+        },
+        {
+          "pickup_borough": "N/A",
+          "pickup_hour": 9,
+          "trip_count": 344,
+          "active_pickup_zones": 1
+        },
+        {
+          "pickup_borough": "N/A",
+          "pickup_hour": 10,
+          "trip_count": 432,
+          "active_pickup_zones": 1
+        },
+        {
+          "pickup_borough": "N/A",
+          "pickup_hour": 11,
+          "trip_count": 471,
+          "active_pickup_zones": 1
+        },
+        {
+          "pickup_borough": "N/A",
+          "pickup_hour": 12,
+          "trip_count": 495,
+          "active_pickup_zones": 1
+        },
+        {
+          "pickup_borough": "N/A",
+          "pickup_hour": 13,
+          "trip_count": 682,
+          "active_pickup_zones": 1
+        },
+        {
+          "pickup_borough": "N/A",
+          "pickup_hour": 14,
+          "trip_count": 718,
+          "active_pickup_zones": 1
+        },
+        {
+          "pickup_borough": "N/A",
+          "pickup_hour": 15,
+          "trip_count": 640,
+          "active_pickup_zones": 1
+        },
+        {
+          "pickup_borough": "N/A",
+          "pickup_hour": 16,
+          "trip_count": 674,
+          "active_pickup_zones": 1
+        },
+        {
+          "pickup_borough": "N/A",
+          "pickup_hour": 17,
+          "trip_count": 625,
+          "active_pickup_zones": 1
+        },
+        {
+          "pickup_borough": "N/A",
+          "pickup_hour": 18,
+          "trip_count": 617,
+          "active_pickup_zones": 1
+        },
+        {
+          "pickup_borough": "N/A",
+          "pickup_hour": 19,
+          "trip_count": 596,
+          "active_pickup_zones": 1
+        },
+        {
+          "pickup_borough": "N/A",
+          "pickup_hour": 20,
+          "trip_count": 631,
+          "active_pickup_zones": 1
+        },
+        {
+          "pickup_borough": "N/A",
+          "pickup_hour": 21,
+          "trip_count": 638,
+          "active_pickup_zones": 1
+        },
+        {
+          "pickup_borough": "N/A",
+          "pickup_hour": 22,
+          "trip_count": 599,
+          "active_pickup_zones": 1
+        },
+        {
+          "pickup_borough": "N/A",
+          "pickup_hour": 23,
+          "trip_count": 630,
+          "active_pickup_zones": 1
+        },
+        {
+          "pickup_borough": "Queens",
+          "pickup_hour": 0,
+          "trip_count": 91987,
+          "active_pickup_zones": 69
+        },
+        {
+          "pickup_borough": "Queens",
+          "pickup_hour": 1,
+          "trip_count": 43635,
+          "active_pickup_zones": 69
+        },
+        {
+          "pickup_borough": "Queens",
+          "pickup_hour": 2,
+          "trip_count": 20370,
+          "active_pickup_zones": 69
+        },
+        {
+          "pickup_borough": "Queens",
+          "pickup_hour": 3,
+          "trip_count": 15666,
+          "active_pickup_zones": 67
+        },
+        {
+          "pickup_borough": "Queens",
+          "pickup_hour": 4,
+          "trip_count": 23570,
+          "active_pickup_zones": 69
+        },
+        {
+          "pickup_borough": "Queens",
+          "pickup_hour": 5,
+          "trip_count": 34957,
+          "active_pickup_zones": 68
+        },
+        {
+          "pickup_borough": "Queens",
+          "pickup_hour": 6,
+          "trip_count": 55234,
+          "active_pickup_zones": 69
+        },
+        {
+          "pickup_borough": "Queens",
+          "pickup_hour": 7,
+          "trip_count": 74170,
+          "active_pickup_zones": 67
+        },
+        {
+          "pickup_borough": "Queens",
+          "pickup_hour": 8,
+          "trip_count": 76087,
+          "active_pickup_zones": 69
+        },
+        {
+          "pickup_borough": "Queens",
+          "pickup_hour": 9,
+          "trip_count": 79244,
+          "active_pickup_zones": 69
+        },
+        {
+          "pickup_borough": "Queens",
+          "pickup_hour": 10,
+          "trip_count": 87839,
+          "active_pickup_zones": 69
+        },
+        {
+          "pickup_borough": "Queens",
+          "pickup_hour": 11,
+          "trip_count": 88923,
+          "active_pickup_zones": 69
+        },
+        {
+          "pickup_borough": "Queens",
+          "pickup_hour": 12,
+          "trip_count": 94437,
+          "active_pickup_zones": 69
+        },
+        {
+          "pickup_borough": "Queens",
+          "pickup_hour": 13,
+          "trip_count": 109802,
+          "active_pickup_zones": 69
+        },
+        {
+          "pickup_borough": "Queens",
+          "pickup_hour": 14,
+          "trip_count": 144455,
+          "active_pickup_zones": 69
+        },
+        {
+          "pickup_borough": "Queens",
+          "pickup_hour": 15,
+          "trip_count": 151628,
+          "active_pickup_zones": 69
+        },
+        {
+          "pickup_borough": "Queens",
+          "pickup_hour": 16,
+          "trip_count": 149474,
+          "active_pickup_zones": 69
+        },
+        {
+          "pickup_borough": "Queens",
+          "pickup_hour": 17,
+          "trip_count": 137302,
+          "active_pickup_zones": 69
+        },
+        {
+          "pickup_borough": "Queens",
+          "pickup_hour": 18,
+          "trip_count": 130115,
+          "active_pickup_zones": 69
+        },
+        {
+          "pickup_borough": "Queens",
+          "pickup_hour": 19,
+          "trip_count": 135722,
+          "active_pickup_zones": 69
+        },
+        {
+          "pickup_borough": "Queens",
+          "pickup_hour": 20,
+          "trip_count": 132346,
+          "active_pickup_zones": 69
+        },
+        {
+          "pickup_borough": "Queens",
+          "pickup_hour": 21,
+          "trip_count": 133937,
+          "active_pickup_zones": 69
+        },
+        {
+          "pickup_borough": "Queens",
+          "pickup_hour": 22,
+          "trip_count": 132121,
+          "active_pickup_zones": 69
+        },
+        {
+          "pickup_borough": "Queens",
+          "pickup_hour": 23,
+          "trip_count": 131274,
+          "active_pickup_zones": 69
+        },
+        {
+          "pickup_borough": "Staten Island",
+          "pickup_hour": 0,
+          "trip_count": 82,
+          "active_pickup_zones": 15
+        },
+        {
+          "pickup_borough": "Staten Island",
+          "pickup_hour": 1,
+          "trip_count": 45,
+          "active_pickup_zones": 16
+        },
+        {
+          "pickup_borough": "Staten Island",
+          "pickup_hour": 2,
+          "trip_count": 32,
+          "active_pickup_zones": 12
+        },
+        {
+          "pickup_borough": "Staten Island",
+          "pickup_hour": 3,
+          "trip_count": 44,
+          "active_pickup_zones": 17
+        },
+        {
+          "pickup_borough": "Staten Island",
+          "pickup_hour": 4,
+          "trip_count": 72,
+          "active_pickup_zones": 16
+        },
+        {
+          "pickup_borough": "Staten Island",
+          "pickup_hour": 5,
+          "trip_count": 79,
+          "active_pickup_zones": 15
+        },
+        {
+          "pickup_borough": "Staten Island",
+          "pickup_hour": 6,
+          "trip_count": 113,
+          "active_pickup_zones": 14
+        },
+        {
+          "pickup_borough": "Staten Island",
+          "pickup_hour": 7,
+          "trip_count": 254,
+          "active_pickup_zones": 14
+        },
+        {
+          "pickup_borough": "Staten Island",
+          "pickup_hour": 8,
+          "trip_count": 245,
+          "active_pickup_zones": 15
+        },
+        {
+          "pickup_borough": "Staten Island",
+          "pickup_hour": 9,
+          "trip_count": 75,
+          "active_pickup_zones": 16
+        },
+        {
+          "pickup_borough": "Staten Island",
+          "pickup_hour": 10,
+          "trip_count": 90,
+          "active_pickup_zones": 14
+        },
+        {
+          "pickup_borough": "Staten Island",
+          "pickup_hour": 11,
+          "trip_count": 67,
+          "active_pickup_zones": 16
+        },
+        {
+          "pickup_borough": "Staten Island",
+          "pickup_hour": 12,
+          "trip_count": 66,
+          "active_pickup_zones": 13
+        },
+        {
+          "pickup_borough": "Staten Island",
+          "pickup_hour": 13,
+          "trip_count": 93,
+          "active_pickup_zones": 16
+        },
+        {
+          "pickup_borough": "Staten Island",
+          "pickup_hour": 14,
+          "trip_count": 98,
+          "active_pickup_zones": 14
+        },
+        {
+          "pickup_borough": "Staten Island",
+          "pickup_hour": 15,
+          "trip_count": 134,
+          "active_pickup_zones": 16
+        },
+        {
+          "pickup_borough": "Staten Island",
+          "pickup_hour": 16,
+          "trip_count": 129,
+          "active_pickup_zones": 16
+        },
+        {
+          "pickup_borough": "Staten Island",
+          "pickup_hour": 17,
+          "trip_count": 94,
+          "active_pickup_zones": 16
+        },
+        {
+          "pickup_borough": "Staten Island",
+          "pickup_hour": 18,
+          "trip_count": 94,
+          "active_pickup_zones": 17
+        },
+        {
+          "pickup_borough": "Staten Island",
+          "pickup_hour": 19,
+          "trip_count": 78,
+          "active_pickup_zones": 16
+        },
+        {
+          "pickup_borough": "Staten Island",
+          "pickup_hour": 20,
+          "trip_count": 76,
+          "active_pickup_zones": 14
+        },
+        {
+          "pickup_borough": "Staten Island",
+          "pickup_hour": 21,
+          "trip_count": 95,
+          "active_pickup_zones": 17
+        },
+        {
+          "pickup_borough": "Staten Island",
+          "pickup_hour": 22,
+          "trip_count": 102,
+          "active_pickup_zones": 15
+        },
+        {
+          "pickup_borough": "Staten Island",
+          "pickup_hour": 23,
+          "trip_count": 115,
+          "active_pickup_zones": 15
+        },
+        {
+          "pickup_borough": "Unknown",
+          "pickup_hour": 0,
+          "trip_count": 761,
+          "active_pickup_zones": 1
+        },
+        {
+          "pickup_borough": "Unknown",
+          "pickup_hour": 1,
+          "trip_count": 456,
+          "active_pickup_zones": 1
+        },
+        {
+          "pickup_borough": "Unknown",
+          "pickup_hour": 2,
+          "trip_count": 301,
+          "active_pickup_zones": 1
+        },
+        {
+          "pickup_borough": "Unknown",
+          "pickup_hour": 3,
+          "trip_count": 208,
+          "active_pickup_zones": 1
+        },
+        {
+          "pickup_borough": "Unknown",
+          "pickup_hour": 4,
+          "trip_count": 225,
+          "active_pickup_zones": 1
+        },
+        {
+          "pickup_borough": "Unknown",
+          "pickup_hour": 5,
+          "trip_count": 322,
+          "active_pickup_zones": 1
+        },
+        {
+          "pickup_borough": "Unknown",
+          "pickup_hour": 6,
+          "trip_count": 737,
+          "active_pickup_zones": 1
+        },
+        {
+          "pickup_borough": "Unknown",
+          "pickup_hour": 7,
+          "trip_count": 1323,
+          "active_pickup_zones": 1
+        },
+        {
+          "pickup_borough": "Unknown",
+          "pickup_hour": 8,
+          "trip_count": 1502,
+          "active_pickup_zones": 1
+        },
+        {
+          "pickup_borough": "Unknown",
+          "pickup_hour": 9,
+          "trip_count": 1419,
+          "active_pickup_zones": 1
+        },
+        {
+          "pickup_borough": "Unknown",
+          "pickup_hour": 10,
+          "trip_count": 1509,
+          "active_pickup_zones": 1
+        },
+        {
+          "pickup_borough": "Unknown",
+          "pickup_hour": 11,
+          "trip_count": 1541,
+          "active_pickup_zones": 1
+        },
+        {
+          "pickup_borough": "Unknown",
+          "pickup_hour": 12,
+          "trip_count": 1619,
+          "active_pickup_zones": 1
+        },
+        {
+          "pickup_borough": "Unknown",
+          "pickup_hour": 13,
+          "trip_count": 1962,
+          "active_pickup_zones": 1
+        },
+        {
+          "pickup_borough": "Unknown",
+          "pickup_hour": 14,
+          "trip_count": 2415,
+          "active_pickup_zones": 1
+        },
+        {
+          "pickup_borough": "Unknown",
+          "pickup_hour": 15,
+          "trip_count": 2265,
+          "active_pickup_zones": 1
+        },
+        {
+          "pickup_borough": "Unknown",
+          "pickup_hour": 16,
+          "trip_count": 2166,
+          "active_pickup_zones": 1
+        },
+        {
+          "pickup_borough": "Unknown",
+          "pickup_hour": 17,
+          "trip_count": 2359,
+          "active_pickup_zones": 1
+        },
+        {
+          "pickup_borough": "Unknown",
+          "pickup_hour": 18,
+          "trip_count": 2333,
+          "active_pickup_zones": 1
+        },
+        {
+          "pickup_borough": "Unknown",
+          "pickup_hour": 19,
+          "trip_count": 1975,
+          "active_pickup_zones": 1
+        },
+        {
+          "pickup_borough": "Unknown",
+          "pickup_hour": 20,
+          "trip_count": 1838,
+          "active_pickup_zones": 1
+        },
+        {
+          "pickup_borough": "Unknown",
+          "pickup_hour": 21,
+          "trip_count": 1882,
+          "active_pickup_zones": 1
+        },
+        {
+          "pickup_borough": "Unknown",
+          "pickup_hour": 22,
+          "trip_count": 1422,
+          "active_pickup_zones": 1
+        },
+        {
+          "pickup_borough": "Unknown",
+          "pickup_hour": 23,
+          "trip_count": 1168,
+          "active_pickup_zones": 1
+        }
+      ],
+      "row_count": 192
+    }
+  }
+}

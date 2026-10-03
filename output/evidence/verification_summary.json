@@ -1,0 +1,17 @@
+﻿{
+    "collected_at":  "2026-10-04T03:10:53.6408259+07:00",
+    "dashboard_health":  true,
+    "hotspot_records":  true,
+    "hotspot_explanations":  true,
+    "upcoming_hotspots":  true,
+    "open_meteo_forecast":  true,
+    "weather_model_selected":  false,
+    "fleet_records":  true,
+    "fleet_moved":  true,
+    "model_artifact":  true,
+    "mongo_records":  true,
+    "hdfs_raw_parquet":  true,
+    "hadoop_streaming_output_verified":  true,
+    "spark_query_outputs_present":  true,
+    "performance_outputs_identical":  true
+}

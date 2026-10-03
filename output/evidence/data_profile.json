@@ -1,0 +1,299 @@
+﻿{
+  "source": "NYC TLC Yellow Taxi Trip Records",
+  "raw": {
+    "hdfs_path": "hdfs://namenode:9000/taxi/raw/parquet",
+    "format": "Parquet",
+    "columns": [
+      "VendorID",
+      "tpep_pickup_datetime",
+      "tpep_dropoff_datetime",
+      "passenger_count",
+      "trip_distance",
+      "RatecodeID",
+      "store_and_fwd_flag",
+      "PULocationID",
+      "DOLocationID",
+      "payment_type",
+      "fare_amount",
+      "extra",
+      "mta_tax",
+      "tip_amount",
+      "tolls_amount",
+      "improvement_surcharge",
+      "total_amount",
+      "congestion_surcharge",
+      "Airport_fee",
+      "cbd_congestion_fee"
+    ],
+    "schema": {
+      "fields": [
+        {
+          "metadata": {},
+          "name": "VendorID",
+          "nullable": true,
+          "type": "integer"
+        },
+        {
+          "metadata": {},
+          "name": "tpep_pickup_datetime",
+          "nullable": true,
+          "type": "timestamp_ntz"
+        },
+        {
+          "metadata": {},
+          "name": "tpep_dropoff_datetime",
+          "nullable": true,
+          "type": "timestamp_ntz"
+        },
+        {
+          "metadata": {},
+          "name": "passenger_count",
+          "nullable": true,
+          "type": "long"
+        },
+        {
+          "metadata": {},
+          "name": "trip_distance",
+          "nullable": true,
+          "type": "double"
+        },
+        {
+          "metadata": {},
+          "name": "RatecodeID",
+          "nullable": true,
+          "type": "long"
+        },
+        {
+          "metadata": {},
+          "name": "store_and_fwd_flag",
+          "nullable": true,
+          "type": "string"
+        },
+        {
+          "metadata": {},
+          "name": "PULocationID",
+          "nullable": true,
+          "type": "integer"
+        },
+        {
+          "metadata": {},
+          "name": "DOLocationID",
+          "nullable": true,
+          "type": "integer"
+        },
+        {
+          "metadata": {},
+          "name": "payment_type",
+          "nullable": true,
+          "type": "long"
+        },
+        {
+          "metadata": {},
+          "name": "fare_amount",
+          "nullable": true,
+          "type": "double"
+        },
+        {
+          "metadata": {},
+          "name": "extra",
+          "nullable": true,
+          "type": "double"
+        },
+        {
+          "metadata": {},
+          "name": "mta_tax",
+          "nullable": true,
+          "type": "double"
+        },
+        {
+          "metadata": {},
+          "name": "tip_amount",
+          "nullable": true,
+          "type": "double"
+        },
+        {
+          "metadata": {},
+          "name": "tolls_amount",
+          "nullable": true,
+          "type": "double"
+        },
+        {
+          "metadata": {},
+          "name": "improvement_surcharge",
+          "nullable": true,
+          "type": "double"
+        },
+        {
+          "metadata": {},
+          "name": "total_amount",
+          "nullable": true,
+          "type": "double"
+        },
+        {
+          "metadata": {},
+          "name": "congestion_surcharge",
+          "nullable": true,
+          "type": "double"
+        },
+        {
+          "metadata": {},
+          "name": "Airport_fee",
+          "nullable": true,
+          "type": "double"
+        },
+        {
+          "metadata": {},
+          "name": "cbd_congestion_fee",
+          "nullable": true,
+          "type": "double"
+        }
+      ],
+      "type": "struct"
+    },
+    "row_count": 26116976,
+    "pickup_year_distribution": [
+      {
+        "year": 2001,
+        "row_count": 1
+      },
+      {
+        "year": 2008,
+        "row_count": 4
+      },
+      {
+        "year": 2009,
+        "row_count": 5
+      },
+      {
+        "year": 2024,
+        "row_count": 21
+      },
+      {
+        "year": 2025,
+        "row_count": 3475205
+      },
+      {
+        "year": 2026,
+        "row_count": 22641740
+      }
+    ],
+    "pickup_datetime_min": "2001-01-01 09:23:58",
+    "pickup_datetime_max": "2026-08-05 20:54:00",
+    "null_counts_on_pipeline_keys": {
+      "null_tpep_pickup_datetime": 0,
+      "null_PULocationID": 0,
+      "null_DOLocationID": 0
+    }
+  },
+  "curated": {
+    "hdfs_path": "hdfs://namenode:9000/taxi/curated/trips",
+    "format": "Parquet",
+    "columns": [
+      "dropoff_zone",
+      "pickup_zone",
+      "event_id",
+      "pickup_datetime",
+      "event_time",
+      "pickup_hour",
+      "pickup_dow",
+      "pickup_borough",
+      "pickup_zone_name",
+      "pickup_service_zone",
+      "dropoff_borough",
+      "dropoff_zone_name",
+      "dropoff_service_zone"
+    ],
+    "schema": {
+      "fields": [
+        {
+          "metadata": {},
+          "name": "dropoff_zone",
+          "nullable": true,
+          "type": "string"
+        },
+        {
+          "metadata": {},
+          "name": "pickup_zone",
+          "nullable": true,
+          "type": "string"
+        },
+        {
+          "metadata": {},
+          "name": "event_id",
+          "nullable": true,
+          "type": "string"
+        },
+        {
+          "metadata": {},
+          "name": "pickup_datetime",
+          "nullable": true,
+          "type": "timestamp_ntz"
+        },
+        {
+          "metadata": {},
+          "name": "event_time",
+          "nullable": true,
+          "type": "timestamp"
+        },
+        {
+          "metadata": {},
+          "name": "pickup_hour",
+          "nullable": true,
+          "type": "integer"
+        },
+        {
+          "metadata": {},
+          "name": "pickup_dow",
+          "nullable": true,
+          "type": "integer"
+        },
+        {
+          "metadata": {},
+          "name": "pickup_borough",
+          "nullable": true,
+          "type": "string"
+        },
+        {
+          "metadata": {},
+          "name": "pickup_zone_name",
+          "nullable": true,
+          "type": "string"
+        },
+        {
+          "metadata": {},
+          "name": "pickup_service_zone",
+          "nullable": true,
+          "type": "string"
+        },
+        {
+          "metadata": {},
+          "name": "dropoff_borough",
+          "nullable": true,
+          "type": "string"
+        },
+        {
+          "metadata": {},
+          "name": "dropoff_zone_name",
+          "nullable": true,
+          "type": "string"
+        },
+        {
+          "metadata": {},
+          "name": "dropoff_service_zone",
+          "nullable": true,
+          "type": "string"
+        }
+      ],
+      "type": "struct"
+    },
+    "row_count": 26116976,
+    "pickup_datetime_min": "2001-01-01 09:23:58",
+    "pickup_datetime_max": "2026-08-05 20:54:00",
+    "distinct_pickup_zones": 262,
+    "null_counts_on_pipeline_keys": {
+      "null_event_id": 0,
+      "null_pickup_datetime": 0,
+      "null_pickup_zone": 0
+    }
+  }
+}

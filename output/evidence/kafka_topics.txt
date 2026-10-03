@@ -1,0 +1,3 @@
+﻿__consumer_offsets
+taxi_trips_realtime_v2
+taxi_vehicles

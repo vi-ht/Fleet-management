@@ -1,8 +1,18 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-if [[ "${FORCE_TRAIN:-false}" != "true" && -f /models/hotspot_model/metadata/part-00000 && -f /data/results/model_metrics.json ]]; then
-  echo "[PASS] Hotspot model and holdout metrics already exist; training skipped"
+if [[ "${FORCE_TRAIN:-false}" != "true" && -f /models/hotspot_model/metadata/part-00000 && -f /models/historical_baseline.json && -f /data/results/model_metrics.json ]] && python3 - <<'PY'
+import json
+from pathlib import Path
+p=Path('/data/results/model_metrics.json')
+try:
+    m=json.loads(p.read_text())
+    raise SystemExit(0 if m.get('weather_source') == 'Open-Meteo Historical Forecast API' and m.get('weather_coverage') is not None else 1)
+except Exception:
+    raise SystemExit(1)
+PY
+then
+  echo "[PASS] Weather-aware model, anomaly baseline, and holdout metrics already exist; training skipped"
   exit 0
 fi
 

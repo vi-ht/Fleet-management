@@ -1,0 +1,7 @@
+﻿/taxi/raw/parquet/yellow_tripdata_2025-01.parquet	MD5-of-0MD5-of-512CRC32C	000002000000000000000000fe916c0e426d28c803db3f316c49027d
+/taxi/raw/parquet/yellow_tripdata_2026-02.parquet	MD5-of-0MD5-of-512CRC32C	000002000000000000000000bbea31900e50ca4b8d7721b8b131fe49
+/taxi/raw/parquet/yellow_tripdata_2026-03.parquet	MD5-of-0MD5-of-512CRC32C	000002000000000000000000f3932218346a6ffd0cf6943cad09c116
+/taxi/raw/parquet/yellow_tripdata_2026-04.parquet	MD5-of-0MD5-of-512CRC32C	000002000000000000000000d1ff62b42ec464f289fc4ed47c7c16c6
+/taxi/raw/parquet/yellow_tripdata_2026-05.parquet	MD5-of-0MD5-of-512CRC32C	00000200000000000000000094e515e44d388397aba1de2240ffab9f
+/taxi/raw/parquet/yellow_tripdata_2026-06.parquet	MD5-of-0MD5-of-512CRC32C	000002000000000000000000574c52898a0b85c2c282a29afdaa7b37
+/taxi/raw/parquet/yellow_tripdata_2026-07.parquet	MD5-of-0MD5-of-512CRC32C	00000200000000000000000062cafc70a82d893cf97d2a37cc1fa19d

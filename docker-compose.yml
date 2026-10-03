@@ -150,7 +150,7 @@ services:
     environment:
       HDFS_WEB_URL: http://namenode:9870
       HDFS_URI: hdfs://namenode:9000
-      RAW_DATA_PATH: /workspace/Nyc taxi trip record/Nyc taxi trip record
+      RAW_DATA_PATH: ${RAW_DATA_PATH:-/workspace/Nyc taxi trip record/Nyc taxi trip record}
       FORCE_BATCH: ${FORCE_BATCH:-false}
       SIMULATION_REFRESH: ${SIMULATION_REFRESH:-false}
       SIMULATION_ROWS: ${SIMULATION_ROWS:-10000}
@@ -161,6 +161,27 @@ services:
       - ./checkpoints:/checkpoints
       - ./config/hadoop:/opt/spark/conf/hadoop:ro
     depends_on:
+      namenode:
+        condition: service_healthy
+      datanode:
+        condition: service_started
+
+  hadoop-streaming:
+    image: bde2020/hadoop-base:2.0.0-hadoop3.2.1-java8
+    entrypoint: ["/bin/bash"]
+    command: ["/workspace/scripts/run_hadoop_streaming.sh"]
+    environment:
+      HADOOP_HOME: /opt/hadoop-3.2.1
+      HADOOP_CONF_DIR: /opt/hadoop-3.2.1/etc/hadoop
+      FORCE_BATCH: ${FORCE_BATCH:-false}
+    volumes:
+      - ./scripts/run_hadoop_streaming.sh:/workspace/scripts/run_hadoop_streaming.sh:ro
+      - ./mapreduce:/workspace/mapreduce:ro
+      - ./data:/data
+      - ./config/hadoop:/opt/hadoop-3.2.1/etc/hadoop:ro
+    depends_on:
+      mapreduce-job:
+        condition: service_completed_successfully
       namenode:
         condition: service_healthy
       datanode:
@@ -177,7 +198,7 @@ services:
       FORCE_ETL: ${FORCE_ETL:-false}
     volumes: *pipeline-volumes
     depends_on:
-      mapreduce-job:
+      hadoop-streaming:
         condition: service_completed_successfully
       spark-master:
         condition: service_started
@@ -199,6 +220,24 @@ services:
         condition: service_completed_successfully
       spark-master:
         condition: service_started
+      spark-worker:
+        condition: service_started
+
+  spark-analysis:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    entrypoint: ["/bin/bash"]
+    command: ["/workspace/scripts/run_spark_analysis.sh"]
+    environment:
+      HADOOP_CONF_DIR: /opt/spark/conf/hadoop
+    volumes: *pipeline-volumes
+    profiles: ["analysis"]
+    depends_on:
+      spark-etl:
+        condition: service_completed_successfully
+      spark-master:
+        condition: service_healthy
       spark-worker:
         condition: service_started
 
@@ -235,7 +274,7 @@ services:
       SIMULATION_VEHICLES: ${SIMULATION_VEHICLES:-40}
       SIMULATION_VEHICLE_SNAPSHOT_INTERVAL: ${SIMULATION_VEHICLE_SNAPSHOT_INTERVAL:-10}
       SIMULATION_SOURCE_ROWS: ${SIMULATION_SOURCE_ROWS:-10000}
-      SIMULATION_TIMEZONE_OFFSET_HOURS: ${SIMULATION_TIMEZONE_OFFSET_HOURS:-7}
+      SIMULATION_TIMEZONE: ${SIMULATION_TIMEZONE:-America/New_York}
       SIMULATION_EVENT_TIME_STEP_SECONDS: ${SIMULATION_EVENT_TIME_STEP_SECONDS:-1}
       ROUTING_BASE_URL: ${ROUTING_BASE_URL:-https://router.project-osrm.org}
       ROUTE_RETRY_SECONDS: ${ROUTE_RETRY_SECONDS:-30}
@@ -244,7 +283,7 @@ services:
       - .:/workspace
       - ./data:/data
     depends_on:
-      mapreduce-job:
+      hadoop-streaming:
         condition: service_completed_successfully
       kafka-topic-init:
         condition: service_completed_successfully
@@ -308,6 +347,9 @@ services:
       MONGO_DATABASE: taxi
       MONGO_COLLECTION: hotspot_predictions
       MONGO_VEHICLE_COLLECTION: vehicle_status
+      SPARK_HOME: /opt/spark
+      HADOOP_CONF_DIR: /opt/spark/conf/hadoop
+      PYTHONPATH: /opt/spark/python:/opt/spark/python/lib/py4j-0.10.9.7-src.zip:/workspace
     volumes:
       - .:/workspace
     ports:

@@ -1,0 +1,11 @@
+﻿{
+    "status":  "pass",
+    "file":  "output/documents/BDA501_Final_Project_Report_Submission.docx",
+    "pages":  16,
+    "references_start_page":  16,
+    "core_pages":  15,
+    "tables":  9,
+    "images":  4,
+    "checked_at":  "2026-10-04 03:00:33 +07:00",
+    "method":  "Microsoft Word COM open and pagination"
+}

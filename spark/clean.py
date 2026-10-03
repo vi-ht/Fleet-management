@@ -9,6 +9,7 @@ from pyspark.sql.functions import (
     to_timestamp,
     trim,
 )
+from pyspark.sql.functions import broadcast, count, sum as spark_sum, when
 
 
 spark = SparkSession.builder.appName("taxi-hotspot-etl").getOrCreate()
@@ -57,8 +58,62 @@ cleaned = (
     .withColumn("pickup_dow", dayofweek("event_time") - 1)
 )
 
-cleaned.write.mode("overwrite").parquet("hdfs://namenode:9000/taxi/curated/trips")
-cleaned.write.mode("overwrite").parquet("file:///data/curated/trips")
+lookup_path = "file:///data/reference/taxi_zone_lookup.csv"
+lookup = (
+    spark.read.option("header", True).option("inferSchema", True).csv(lookup_path)
+    .select(
+        col("LocationID").cast("string").alias("lookup_zone_id"),
+        col("Borough").alias("zone_borough"),
+        col("Zone").alias("zone_name"),
+        col("service_zone").alias("zone_service_area"),
+    )
+)
+duplicate_lookup_ids = lookup.groupBy("lookup_zone_id").count().where(col("count") > 1).count()
+if duplicate_lookup_ids:
+    raise ValueError(f"Taxi Zone Lookup has {duplicate_lookup_ids} duplicate LocationIDs")
+
+pickup_lookup = lookup.select(
+    col("lookup_zone_id").alias("pickup_zone"),
+    col("zone_borough").alias("pickup_borough"),
+    col("zone_name").alias("pickup_zone_name"),
+    col("zone_service_area").alias("pickup_service_zone"),
+)
+dropoff_lookup = lookup.select(
+    col("lookup_zone_id").alias("dropoff_zone"),
+    col("zone_borough").alias("dropoff_borough"),
+    col("zone_name").alias("dropoff_zone_name"),
+    col("zone_service_area").alias("dropoff_service_zone"),
+)
+enriched = (
+    cleaned.join(broadcast(pickup_lookup), on="pickup_zone", how="left")
+    .join(broadcast(dropoff_lookup), on="dropoff_zone", how="left")
+)
+quality = enriched.agg(
+    count("*").alias("after_enrichment"),
+    spark_sum(when(col("pickup_zone_name").isNull(), 1).otherwise(0)).alias(
+        "unmatched_pickup"
+    ),
+    spark_sum(when(col("dropoff_zone_name").isNull(), 1).otherwise(0)).alias(
+        "unmatched_dropoff"
+    ),
+).first()
+after_enrichment = quality["after_enrichment"]
+before_enrichment = cleaned.count()
+if before_enrichment != after_enrichment:
+    raise ValueError(
+        f"Taxi Zone Lookup changed row count: {before_enrichment} -> {after_enrichment}"
+    )
+print(
+    "[PASS] Taxi Zone Lookup enrichment: "
+    f"lookup_rows={lookup.count()}, rows_before={before_enrichment}, "
+    f"rows_after={after_enrichment}, "
+    f"unmatched_pickup={quality['unmatched_pickup'] or 0}, "
+    f"unmatched_dropoff={quality['unmatched_dropoff'] or 0}; broadcast joins",
+    flush=True,
+)
+
+enriched.write.mode("overwrite").parquet("hdfs://namenode:9000/taxi/curated/trips")
+enriched.write.mode("overwrite").parquet("file:///data/curated/trips")
 open("/data/results/spark_etl_SUCCESS", "w", encoding="utf-8").close()
 print("[PASS] Spark ETL completed", flush=True)
 print("[PASS] Parquet generated", flush=True)

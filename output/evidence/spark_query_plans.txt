@@ -1,0 +1,135 @@
+QUERY: top_zone_hour_dow
+SQL:
+SELECT pickup_zone, pickup_zone_name, pickup_borough, pickup_hour,
+               pickup_dow, COUNT(*) AS trip_count
+        FROM curated_trips
+        GROUP BY pickup_zone, pickup_zone_name, pickup_borough,
+                 pickup_hour, pickup_dow
+        ORDER BY trip_count DESC, pickup_zone ASC, pickup_hour ASC
+        LIMIT 20
+FORMATTED PLAN:
+== Physical Plan ==
+AdaptiveSparkPlan (6)
++- TakeOrderedAndProject (5)
+   +- HashAggregate (4)
+      +- Exchange (3)
+         +- HashAggregate (2)
+            +- Scan parquet  (1)
+
+
+(1) Scan parquet
+Output [5]: [pickup_zone#1, pickup_hour#5, pickup_dow#6, pickup_borough#7, pickup_zone_name#8]
+Batched: true
+Location: InMemoryFileIndex [hdfs://namenode:9000/taxi/curated/trips]
+ReadSchema: struct<pickup_zone:string,pickup_hour:int,pickup_dow:int,pickup_borough:string,pickup_zone_name:string>
+
+(2) HashAggregate
+Input [5]: [pickup_zone#1, pickup_hour#5, pickup_dow#6, pickup_borough#7, pickup_zone_name#8]
+Keys [5]: [pickup_zone#1, pickup_zone_name#8, pickup_borough#7, pickup_hour#5, pickup_dow#6]
+Functions [1]: [partial_count(1)]
+Aggregate Attributes [1]: [count#34L]
+Results [6]: [pickup_zone#1, pickup_zone_name#8, pickup_borough#7, pickup_hour#5, pickup_dow#6, count#35L]
+
+(3) Exchange
+Input [6]: [pickup_zone#1, pickup_zone_name#8, pickup_borough#7, pickup_hour#5, pickup_dow#6, count#35L]
+Arguments: hashpartitioning(pickup_zone#1, pickup_zone_name#8, pickup_borough#7, pickup_hour#5, pickup_dow#6, 200), ENSURE_REQUIREMENTS, [plan_id=17]
+
+(4) HashAggregate
+Input [6]: [pickup_zone#1, pickup_zone_name#8, pickup_borough#7, pickup_hour#5, pickup_dow#6, count#35L]
+Keys [5]: [pickup_zone#1, pickup_zone_name#8, pickup_borough#7, pickup_hour#5, pickup_dow#6]
+Functions [1]: [count(1)]
+Aggregate Attributes [1]: [count(1)#27L]
+Results [6]: [pickup_zone#1, pickup_zone_name#8, pickup_borough#7, pickup_hour#5, pickup_dow#6, count(1)#27L AS trip_count#26L]
+
+(5) TakeOrderedAndProject
+Input [6]: [pickup_zone#1, pickup_zone_name#8, pickup_borough#7, pickup_hour#5, pickup_dow#6, trip_count#26L]
+Arguments: 20, [trip_count#26L DESC NULLS LAST, pickup_zone#1 ASC NULLS FIRST, pickup_hour#5 ASC NULLS FIRST], [pickup_zone#1, pickup_zone_name#8, pickup_borough#7, pickup_hour#5, pickup_dow#6, trip_count#26L]
+
+(6) AdaptiveSparkPlan
+Output [6]: [pickup_zone#1, pickup_zone_name#8, pickup_borough#7, pickup_hour#5, pickup_dow#6, trip_count#26L]
+Arguments: isFinalPlan=false
+
+
+
+
+QUERY: borough_hour_profile
+SQL:
+SELECT pickup_borough, pickup_hour, COUNT(*) AS trip_count,
+               COUNT(DISTINCT pickup_zone) AS active_pickup_zones
+        FROM curated_trips
+        WHERE pickup_borough IS NOT NULL
+        GROUP BY pickup_borough, pickup_hour
+        ORDER BY pickup_borough ASC, pickup_hour ASC
+FORMATTED PLAN:
+== Physical Plan ==
+AdaptiveSparkPlan (11)
++- Sort (10)
+   +- Exchange (9)
+      +- HashAggregate (8)
+         +- Exchange (7)
+            +- HashAggregate (6)
+               +- HashAggregate (5)
+                  +- Exchange (4)
+                     +- HashAggregate (3)
+                        +- Filter (2)
+                           +- Scan parquet  (1)
+
+
+(1) Scan parquet
+Output [3]: [pickup_zone#1, pickup_hour#5, pickup_borough#7]
+Batched: true
+Location: InMemoryFileIndex [hdfs://namenode:9000/taxi/curated/trips]
+PushedFilters: [IsNotNull(pickup_borough)]
+ReadSchema: struct<pickup_zone:string,pickup_hour:int,pickup_borough:string>
+
+(2) Filter
+Input [3]: [pickup_zone#1, pickup_hour#5, pickup_borough#7]
+Condition : isnotnull(pickup_borough#7)
+
+(3) HashAggregate
+Input [3]: [pickup_zone#1, pickup_hour#5, pickup_borough#7]
+Keys [3]: [pickup_borough#7, pickup_hour#5, pickup_zone#1]
+Functions [1]: [partial_count(1)]
+Aggregate Attributes [1]: [count(1)#38L]
+Results [4]: [pickup_borough#7, pickup_hour#5, pickup_zone#1, count#45L]
+
+(4) Exchange
+Input [4]: [pickup_borough#7, pickup_hour#5, pickup_zone#1, count#45L]
+Arguments: hashpartitioning(pickup_borough#7, pickup_hour#5, pickup_zone#1, 200), ENSURE_REQUIREMENTS, [plan_id=83]
+
+(5) HashAggregate
+Input [4]: [pickup_borough#7, pickup_hour#5, pickup_zone#1, count#45L]
+Keys [3]: [pickup_borough#7, pickup_hour#5, pickup_zone#1]
+Functions [1]: [merge_count(1)]
+Aggregate Attributes [1]: [count(1)#38L]
+Results [4]: [pickup_borough#7, pickup_hour#5, pickup_zone#1, count#45L]
+
+(6) HashAggregate
+Input [4]: [pickup_borough#7, pickup_hour#5, pickup_zone#1, count#45L]
+Keys [2]: [pickup_borough#7, pickup_hour#5]
+Functions [2]: [merge_count(1), partial_count(distinct pickup_zone#1)]
+Aggregate Attributes [2]: [count(1)#38L, count(pickup_zone#1)#39L]
+Results [4]: [pickup_borough#7, pickup_hour#5, count#45L, count#48L]
+
+(7) Exchange
+Input [4]: [pickup_borough#7, pickup_hour#5, count#45L, count#48L]
+Arguments: hashpartitioning(pickup_borough#7, pickup_hour#5, 200), ENSURE_REQUIREMENTS, [plan_id=87]
+
+(8) HashAggregate
+Input [4]: [pickup_borough#7, pickup_hour#5, count#45L, count#48L]
+Keys [2]: [pickup_borough#7, pickup_hour#5]
+Functions [2]: [count(1), count(distinct pickup_zone#1)]
+Aggregate Attributes [2]: [count(1)#38L, count(pickup_zone#1)#39L]
+Results [4]: [pickup_borough#7, pickup_hour#5, count(1)#38L AS trip_count#36L, count(pickup_zone#1)#39L AS active_pickup_zones#37L]
+
+(9) Exchange
+Input [4]: [pickup_borough#7, pickup_hour#5, trip_count#36L, active_pickup_zones#37L]
+Arguments: rangepartitioning(pickup_borough#7 ASC NULLS FIRST, pickup_hour#5 ASC NULLS FIRST, 200), ENSURE_REQUIREMENTS, [plan_id=90]
+
+(10) Sort
+Input [4]: [pickup_borough#7, pickup_hour#5, trip_count#36L, active_pickup_zones#37L]
+Arguments: [pickup_borough#7 ASC NULLS FIRST, pickup_hour#5 ASC NULLS FIRST], true, 0
+
+(11) AdaptiveSparkPlan
+Output [4]: [pickup_borough#7, pickup_hour#5, trip_count#36L, active_pickup_zones#37L]
+Arguments: isFinalPlan=false

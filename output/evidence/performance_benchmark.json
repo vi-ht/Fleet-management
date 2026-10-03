@@ -1,0 +1,32 @@
+{
+  "experiment": "same cached 100k-row sample; vary spark.sql.shuffle.partitions",
+  "input_rows": 100000,
+  "spark_version": "3.5.3",
+  "cluster_manager": "Spark Standalone in Docker Compose",
+  "warmup_runs_excluded": 1,
+  "measured_repetitions_per_setting": 3,
+  "settings": {
+    "4": {
+      "shuffle_partitions": 4,
+      "repetitions_seconds": [
+        0.3327175640006317,
+        0.2721877639996819,
+        0.2526391270075692
+      ],
+      "median_seconds": 0.2721877639996819,
+      "group_rows": 13725
+    },
+    "16": {
+      "shuffle_partitions": 16,
+      "repetitions_seconds": [
+        0.24758682399988174,
+        0.238172334007686,
+        0.21308035300171468
+      ],
+      "median_seconds": 0.238172334007686,
+      "group_rows": 13725
+    }
+  },
+  "outputs_identical": true,
+  "interpretation": "Compare medians only within this local Docker run; small timing differences are sensitive to cache, JVM and host load and do not establish scale-out performance."
+}
