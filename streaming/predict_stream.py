@@ -1,11 +1,9 @@
-import json
 import os
-from pathlib import Path
 
 from pymongo import MongoClient, ReplaceOne
 from pyspark.ml import PipelineModel
 from pyspark.sql import SparkSession
-from pyspark.sql.functions import col, dayofweek, from_json, greatest, hour, least, lit, to_timestamp, when
+from pyspark.sql.functions import broadcast, col, dayofweek, from_json, greatest, hour, least, lit, to_timestamp, when
 from pyspark.sql.types import StringType, StructField, StructType
 
 
@@ -15,14 +13,18 @@ spark = (
     .getOrCreate()
 )
 spark.sparkContext.setLogLevel("WARN")
-model_path = os.getenv("HOTSPOT_MODEL_PATH", "file:///models/hotspot_model")
-model = PipelineModel.load(model_path)
-try:
-    historical_baseline = json.loads(
-        Path(os.getenv("HISTORICAL_BASELINE_PATH", "/models/historical_baseline.json")).read_text(encoding="utf-8")
-    )
-except (OSError, ValueError):
-    historical_baseline = {}
+model = PipelineModel.load(os.getenv("HOTSPOT_MODEL_PATH", "file:///models/hotspot_model"))
+demand_model = PipelineModel.load(os.getenv("DEMAND_MODEL_PATH", "file:///models/demand_model"))
+baseline_path = os.getenv("HISTORICAL_BASELINE_TABLE_PATH", "file:///models/historical_baseline_table")
+historical_baseline = spark.read.parquet(baseline_path).select(
+    "pickup_zone",
+    "pickup_hour",
+    "pickup_dow",
+    "mean_trip_count",
+    "stddev_trip_count",
+    "anomaly_threshold",
+    "sample_count",
+)
 
 schema = StructType(
     [
@@ -37,19 +39,32 @@ schema = StructType(
 def write_predictions(batch, batch_id):
     if batch.rdd.isEmpty():
         return
-    predictions = (
+
+    hotspot_predictions = (
         model.transform(batch)
         .select(
             "event_id",
             "pickup_datetime",
+            "event_time",
             "pickup_zone",
             "dropoff_zone",
             "pickup_hour",
             "pickup_dow",
-            least(
-                greatest(col("predicted_hotspot_score"), lit(0.0)),
-                lit(100.0),
-            ).cast("double").alias("hotspot_score"),
+            least(greatest(col("predicted_hotspot_score"), lit(0.0)), lit(100.0))
+            .cast("double")
+            .alias("hotspot_score"),
+        )
+    )
+    demand_predictions = demand_model.transform(batch).select(
+        "event_id", greatest(col("predicted_demand"), lit(0.0)).cast("double").alias("predicted_demand")
+    )
+
+    predictions = (
+        hotspot_predictions.join(demand_predictions, "event_id")
+        .join(
+            broadcast(historical_baseline),
+            ["pickup_zone", "pickup_hour", "pickup_dow"],
+            "left",
         )
         .withColumn(
             "hotspot_level",
@@ -58,42 +73,35 @@ def write_predictions(batch, batch_id):
             .when(col("hotspot_score") >= 25, "Trung bình")
             .otherwise("Thấp"),
         )
+        .withColumn(
+            "alert_flag",
+            when(col("sample_count").isNull() | (col("sample_count") < 5), lit("INSUFFICIENT_BASELINE"))
+            .when(col("predicted_demand") > col("anomaly_threshold"), lit("CRITICAL_ANOMALY"))
+            .otherwise(lit("NORMAL")),
+        )
+        .withColumn("baseline_unit", lit("trips_per_hour_same_weekday"))
+        .withColumn("prediction_unit", lit("trips_per_hour_same_weekday"))
+        .withColumn("batch_id", lit(batch_id))
         .collect()
     )
-    documents = [row.asDict() for row in predictions]
+    documents = [row.asDict(recursive=True) for row in predictions]
     if not documents:
         return
+
     client = MongoClient(os.getenv("MONGO_URI", "mongodb://mongodb:27017"))
     collection = client[os.getenv("MONGO_DATABASE", "taxi")][
         os.getenv("MONGO_COLLECTION", "hotspot_predictions")
     ]
-    for document in documents:
-        baseline = historical_baseline.get(
-            f"{document['pickup_zone']}|{document['pickup_hour']}|{document['pickup_dow']}"
-        )
-        baseline_count = int((baseline or {}).get("count", 0))
-        if baseline and baseline_count >= 5:
-            mean = float(baseline.get("mean", 0))
-            stddev = float(baseline.get("stddev", 0))
-            threshold = min(100.0, mean + 3.0 * stddev)
-        else:
-            mean, stddev, threshold = 0.0, 0.0, 100.0
-        score = float(document["hotspot_score"] or 0.0)
-        document["alert_flag"] = "CRITICAL_ANOMALY" if score > threshold else "NORMAL"
-        document["anomaly_threshold"] = round(threshold, 2)
-        document["historical_mean_score"] = round(mean, 2)
-        document["historical_stddev_score"] = round(stddev, 2)
-        document["historical_baseline_samples"] = baseline_count
-        document["event_time"] = document.pop("pickup_datetime")
-        document["batch_id"] = batch_id
     collection.bulk_write(
         [ReplaceOne({"event_id": document["event_id"]}, document, upsert=True) for document in documents],
         ordered=False,
     )
     client.close()
     alerts = sum(document["alert_flag"] == "CRITICAL_ANOMALY" for document in documents)
+    insufficient = sum(document["alert_flag"] == "INSUFFICIENT_BASELINE" for document in documents)
     print(
-        f"[PASS] MongoDB receiving hotspot scores: {len(documents)}; anomaly alerts={alerts}",
+        f"[PASS] MongoDB predictions={len(documents)}; critical_demand_alerts={alerts}; "
+        f"insufficient_baseline={insufficient}; batch={batch_id}",
         flush=True,
     )
 
@@ -119,5 +127,5 @@ query = (
     .trigger(processingTime="2 seconds")
     .start()
 )
-print("[PASS] Streaming query started", flush=True)
+print("[PASS] Streaming query started with demand baseline broadcast join", flush=True)
 query.awaitTermination()

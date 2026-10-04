@@ -27,8 +27,32 @@
   "hotspot_false_negative": 5305,
   "label": "daily relative hotspot score (0-100)",
   "score_formula": "daily_zone_trip_count / max_daily_trip_count_for_same_hour_and_weekday * 100",
-  "anomaly_rule": "score > mean(training daily zone score) + 3 * population_stddev; minimum 5 training samples; cap 100",
+  "anomaly_rule": "predicted trips per zone/hour/weekday > historical mean_trip_count + 3 * population stddev; minimum 5 training service-days; no score cap",
   "anomaly_baseline_keys": "pickup_zone|pickup_hour|pickup_dow",
   "anomaly_min_samples": 5,
-  "anomaly_sigma": 3.0
+  "anomaly_sigma": 3.0,
+  "demand_model": "GBTRegressor (absolute trips per zone/hour/weekday)",
+  "demand_label": "trip_count (zero-filled zone/date/hour observations)",
+  "demand_unit": "trips per hour for a service-day matching the weekday",
+  "demand_features": [
+    "pickup_zone",
+    "pickup_hour",
+    "pickup_dow"
+  ],
+  "demand_training_rows": 1119264,
+  "demand_evaluation_rows": 282960,
+  "demand_mae": 15.697366730710643,
+  "demand_rmse": 28.939758770142582,
+  "demand_r2": 0.6471777350650939,
+  "demand_baseline_artifact": "models/historical_baseline_table (Parquet) and historical_baseline.json",
+  "demand_baseline_columns": [
+    "pickup_zone",
+    "pickup_hour",
+    "pickup_dow",
+    "mean_trip_count",
+    "stddev_trip_count",
+    "anomaly_threshold",
+    "sample_count"
+  ],
+  "demand_baseline_rule": "anomaly_threshold = mean_trip_count + 3 * stddev_trip_count; zero-trip date/hour buckets included"
 }

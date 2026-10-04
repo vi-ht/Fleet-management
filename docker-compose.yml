@@ -272,6 +272,10 @@ services:
       MONGO_URI: mongodb://mongodb:27017
       MONGO_DATABASE: taxi
       MONGO_DISPATCH_COLLECTION: vehicle_dispatch_commands
+      HOTSPOT_MODEL_PATH: /workspace/models/hotspot_model
+      DEMAND_MODEL_PATH: /workspace/models/demand_model
+      HISTORICAL_BASELINE_PATH: /workspace/models/historical_baseline.json
+      HISTORICAL_BASELINE_TABLE_PATH: /workspace/models/historical_baseline_table
       RAW_DATA_PATH: /workspace/Nyc taxi trip record/Nyc taxi trip record
       PRODUCER_DELAY_SECONDS: ${PRODUCER_DELAY_SECONDS:-0.20}
       SIMULATION_LOOP: ${SIMULATION_LOOP:-true}
@@ -311,7 +315,9 @@ services:
       MONGO_DATABASE: taxi
       MONGO_COLLECTION: hotspot_predictions
       STREAM_STARTING_OFFSETS: ${STREAM_STARTING_OFFSETS:-latest}
-      CHECKPOINT_LOCATION: file:///checkpoints/taxi-hotspot-realtime-v4
+      CHECKPOINT_LOCATION: file:///checkpoints/taxi-hotspot-realtime-v5
+      DEMAND_MODEL_PATH: file:///models/demand_model
+      HISTORICAL_BASELINE_TABLE_PATH: file:///models/historical_baseline_table
     volumes: *pipeline-volumes
     depends_on:
       model-trainer:
