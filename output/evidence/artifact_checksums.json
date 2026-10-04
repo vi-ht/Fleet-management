@@ -1,19 +1,19 @@
 [
   {
     "path": "output/evidence/runtime_capture_2026-10-04.json",
-    "sha256": "1964f11fb772160ad1f4f77b82d9c7e8f0ce149283b44d7ae17125fe6487fb54"
+    "sha256": "3e3eb572d39d12e29f40822a04f8665b3278490047438aee21ed5204fc630bef"
   },
   {
     "path": "output/evidence/fleet_movement_capture_2026-10-04.json",
-    "sha256": "c280d623b655f562268c7ce09104ebbe0e7bb0a1dc627ae4fce3be5b1a9a7bd3"
+    "sha256": "8fd036e7ca67bc6488c134044e34de48e114479afa175fc8217f34cecd99b97d"
   },
   {
     "path": "output/evidence/model_metrics.json",
-    "sha256": "399e34da5b8eeb60ec61647e6c0ddb4aade9fe18dc3055d138daaf5d078b101d"
+    "sha256": "f4a8316cd6f0594c0d0ba5cf16f7c224f2091a563f136b828e17caefd1d68754"
   },
   {
     "path": "output/evidence/runtime_metrics.json",
-    "sha256": "d23b21a799b5d0feb73f02b833bc06922d6877fec99f7cdd63d60a474e380944"
+    "sha256": "e681d8ba45d7a5a7c37fd78e97178daa236c8322903e988fd0747b56711e58d8"
   },
   {
     "path": "output/evidence/data_profile.json",
@@ -21,11 +21,11 @@
   },
   {
     "path": "output/evidence/verification_summary.json",
-    "sha256": "89f6ad86a774de45135658b487d9e35a6a22ccc1dbebc2b2c6ef406be9aae5a8"
+    "sha256": "4392b1a8cde14670bac6c939baf912f09a4cc9d3952113139929276951e90478"
   },
   {
     "path": "output/evidence/docx_render_check.json",
-    "sha256": "5e905a6907431f5c324bee3175e9c182e8853cf43b3ecf9ed7151444c72f5229"
+    "sha256": "1dc38b909e0a8ecc69108f462d673bb6be46638cbcc44819292e62e6d29242fa"
   },
   {
     "path": "output/evidence/spark_etl_enrichment.log",
@@ -41,7 +41,7 @@
   },
   {
     "path": "output/evidence/hdfs_curated_parquet.txt",
-    "sha256": "b83810bf07e030049fa1c8f979d59e5b8dbcb0bf6e4d0e31f9af5340e12bedb3"
+    "sha256": "85c63ee8140dd53b050bad1357b8067d80009b646f6fce49d7ed7445ed6b58dd"
   },
   {
     "path": "output/evidence/kafka_topics.txt",
@@ -49,27 +49,27 @@
   },
   {
     "path": "output/evidence/mongo_hotspot_count.json",
-    "sha256": "0ebdd5bd13171e6689eb5f840851a4a48148d409fc931079185144afe7ecf967"
+    "sha256": "d15e24a07fada5c74264c3903137ada3d065f3b1242a90489c92aa5ac9685c4e"
   },
   {
     "path": "output/evidence/dispatch_hotspots.json",
-    "sha256": "22833a753f9884699ae8a7d32b5cbe332478e0b7014953faf4e89f87431ae35c"
+    "sha256": "4ff277e40e8f5a97606901c75bc67d05b4c652ae0f1153518d1a342c760794c4"
   },
   {
     "path": "output/evidence/upcoming_hotspots.json",
-    "sha256": "6f9afff879804378bc5e738f9d26290718fa5e6f560dfb1437fc6fd327b983f1"
+    "sha256": "be8add76365edfb2307b6a258920c7b88c1dbafb073c0d9d39bf4e43920cb8ba"
   },
   {
     "path": "output/evidence/vehicles_before.json",
-    "sha256": "458d0255bb508b118f16842536fb40feeb79ad1eb23c6c65d3270a94d468c526"
+    "sha256": "e5c768a363932962351952484d2dc3e060f6659b1023356065a0683a3fa6c5da"
   },
   {
     "path": "output/evidence/vehicles_after.json",
-    "sha256": "a70de6d13219ea2b02047fce27c61cdb2147b87a4a4126f1d693ffa9a7afdf19"
+    "sha256": "1f41e47f955f93a91cc80e062862046e42587e786a5ea492cfd15d2c9e4d599f"
   },
   {
     "path": "output/evidence/vehicle_movement.json",
-    "sha256": "a7cd6751751d9ab64d1d1f6e05797dc392e1b11742f1630a9b15a2d93737cc08"
+    "sha256": "eb842dd303ef3d7650d56b2284f362446f0a524804312aa1f385a771f4976e0f"
   },
   {
     "path": "output/evidence/dashboard_health.json",
@@ -77,7 +77,7 @@
   },
   {
     "path": "output/evidence/dashboard_snapshot.json",
-    "sha256": "2cfdea96e5a89569e6f1265b6eb9d0471ff37d40a12cd1d10a2c005e46da297a"
+    "sha256": "5481f9d182b137a1311c51ff2cd4bfc745a78557e9e1fbf35b3667b99be9fd00"
   },
   {
     "path": "output/evidence/hadoop_streaming.log",
@@ -104,36 +104,36 @@
     "sha256": "527b66f403da39f38d506229b06a107d1b8119d1f80adc5d4300a68914a121db"
   },
   {
-    "path": "output/playwright/weather-model-dashboard-2026-10-04.png",
-    "sha256": "b88189b8420d4e81523e867fb7b479bfc69e759e51d95d47de1339d399881cd5"
+    "path": "output/playwright/dashboard-calendar-only-2026-10-04.png",
+    "sha256": "11d1fa1df642a44b10ac0758c54317f4738504c84a3c12a3add0181c61cae027"
   },
   {
-    "path": "output/playwright/weather-model-map-2026-10-04.png",
-    "sha256": "54e3c851b8aeb37a8cd27b7cab86eb2f972a7f28593d76a3fc717178def780b7"
+    "path": "output/playwright/map-calendar-only-2026-10-04.png",
+    "sha256": "f9f1b3a4acf12bb78cc9f42b01570f38cb2ff675b17a0c1dd27ff172ff1409b9"
   },
   {
-    "path": "output/playwright/weather-model-mobile-2026-10-04.png",
-    "sha256": "eac17868430ece3ec9afa79012d17f7faa2b57ba58ed0d95c157fc509746bc52"
+    "path": "output/playwright/mobile-calendar-only-2026-10-04.png",
+    "sha256": "58882e46c650bd975c5fc7eaf8d528418f3481c88e32a7533cc58c539d53b5fd"
   },
   {
     "path": "output/playwright/console-log-evidence-2026-10-04.png",
-    "sha256": "7773b07efd5cfe913440207e38ff9bce61b656b4a326abc1bfa96fbf32d872ee"
+    "sha256": "0af2b278e9d220bf3c9e21b3b7c4afa48145bfa7ccea4d46720153cfea7fad0b"
   },
   {
     "path": "output/playwright/browser-qa-375.png",
-    "sha256": "28051387a44ae2d4979c4f3d30d5e16011a2f5be382507dd1fb96f048a4f10c7"
+    "sha256": "f70dca19a5d4c9beda1ccd11dbd36bb7858580e6ce8aae8e68127c9b7e1799c1"
   },
   {
     "path": "output/playwright/browser-qa-768.png",
-    "sha256": "4de94fabe6073f4101ca656701e8373bef623ad616c8289209216185588a2b7f"
+    "sha256": "ecc10b41bf02062bbe8bec373bade2951c3f4acfdc2d691722582fe0a67026d4"
   },
   {
     "path": "output/playwright/browser-qa-1440.png",
-    "sha256": "0a7e07367ca3bd01b409395ae66827ac2ecbd1a58740330d7863cf418187a194"
+    "sha256": "bf70c443af6498beac207848c0a6dc0d03fdb72faccf58ac3a953bb973d22607"
   },
   {
     "path": "output/evidence/browser_qa_summary_2026-10-04.json",
-    "sha256": "bf546de284ac15281fa2a0470b163beec965ee757de9de73c3f879d5a812acac"
+    "sha256": "5cf298d0593ff7a2bd4776f20ed69a512ba5f9e172035367d7359bdab25a1e95"
   },
   {
     "path": "output/evidence/dependency_audit.json",
@@ -141,10 +141,10 @@
   },
   {
     "path": "output/documents/BDA501_Final_Project_Report_Submission.docx",
-    "sha256": "e39a6432d5ba8084c05c325070137048f1d3d16a66c152b3f8e732cb31e7d376"
+    "sha256": "923689ef66886a7cbd8c30a2867bb821892fcf0b0d1ae57a1575b307109213d3"
   },
   {
     "path": "output/documents/BDA501_Final_Project_QA_QC_Review.docx",
-    "sha256": "e9885d838d0e90a3c23b51fb9f28104505ac01ebbf78093193aec1de4c3e10b9"
+    "sha256": "a540da3b4c7bf07bfd53311cd2666c768d8580927c7b2f4a5fefdde8a5f82c4c"
   }
 ]

@@ -1,11 +1,11 @@
 {
-  "status": "pass",
+  "status": "render_unavailable",
   "file": "output/documents/BDA501_Final_Project_Report_Submission.docx",
-  "pages": 17,
-  "references_start_page": 17,
-  "core_pages": 16,
-  "tables": 9,
+  "pages": null,
+  "references_start_page": null,
+  "core_pages": null,
+  "tables": 8,
   "images": 4,
-  "checked_at": "2026-10-04 04:05:38 +07:00",
-  "method": "Microsoft Word COM open, repagination, PDF export and page count"
+  "checked_at": "2026-10-04 10:15 +07:00",
+  "method": "Not visually rendered after edits: render_docx.py dependencies are missing and soffice/LibreOffice is unavailable; Word COM repagination did not complete."
 }

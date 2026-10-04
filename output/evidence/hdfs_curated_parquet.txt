@@ -1,4 +1,4 @@
-Found 41 items
+﻿Found 41 items
 -rw-r--r--   1 spark supergroup          0 2026-10-03 20:50 /taxi/curated/trips/_SUCCESS
 -rw-r--r--   1 spark supergroup     52.0 M 2026-10-03 20:49 /taxi/curated/trips/part-00000-07ebb343-fcfc-4b41-a2cf-ff2d76d7395b-c000.snappy.parquet
 -rw-r--r--   1 spark supergroup     51.9 M 2026-10-03 20:49 /taxi/curated/trips/part-00001-07ebb343-fcfc-4b41-a2cf-ff2d76d7395b-c000.snappy.parquet

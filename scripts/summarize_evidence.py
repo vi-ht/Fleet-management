@@ -40,6 +40,9 @@ def main(root: Path) -> None:
     runtime = {
         "collected_at": verified["collected_at"],
         "dashboard_health": verified["dashboard_health"],
+        "legacy_weather_endpoint_removed": verified.get("legacy_weather_endpoint_removed"),
+        "dashboard_has_no_weather_content": verified.get("dashboard_has_no_weather_content"),
+        "forecast_has_no_weather_fields": verified.get("forecast_has_no_weather_fields"),
         "prediction_records": int(dashboard["summary"]["count"]),
         "zones_with_data": int(dashboard["summary"]["zones"]),
         "latest_prediction_time": dashboard["summary"].get("latest"),
@@ -77,6 +80,9 @@ def main(root: Path) -> None:
     summary = [
         f"collected_at={runtime['collected_at']}",
         f"dashboard_health={runtime['dashboard_health']}",
+        f"legacy_weather_endpoint_removed={runtime['legacy_weather_endpoint_removed']}",
+        f"dashboard_has_no_weather_content={runtime['dashboard_has_no_weather_content']}",
+        f"forecast_has_no_weather_fields={runtime['forecast_has_no_weather_fields']}",
         f"prediction_records={runtime['prediction_records']}",
         f"zones_with_data={runtime['zones_with_data']}",
         f"mongo_prediction_records={runtime['mongo_prediction_records']}",
@@ -90,11 +96,7 @@ def main(root: Path) -> None:
         f"curated_distinct_pickup_zones={runtime['curated_distinct_pickup_zones']}",
         f"kafka_topics={', '.join(runtime['kafka_topics'])}",
         f"model_evaluation={metrics.get('evaluation_method')}",
-        f"weather_source={metrics.get('weather_source')}",
-        f"weather_coverage={metrics.get('weather_coverage')}",
-        f"weather_model_selected={metrics.get('weather_selected_by_temporal_holdout')}",
-        f"calendar_rmse={metrics.get('temporal_holdout_comparison', {}).get('calendar_baseline', {}).get('RMSE')}",
-        f"weather_candidate_rmse={metrics.get('temporal_holdout_comparison', {}).get('weather_candidate', {}).get('RMSE')}",
+        f"model_features={', '.join(metrics.get('features', []))}",
         f"test_period={metrics.get('test_start_date')}..{metrics.get('test_end_date')}",
         f"training_rows={metrics.get('training_rows')}",
         f"evaluation_rows={metrics.get('evaluation_rows')}",
@@ -113,11 +115,9 @@ def main(root: Path) -> None:
         "data/results/performance_benchmark.json", "evidence/mongo_hotspot_count.json",
         "output/playwright/verification-summary.txt", "output/playwright/runtime-dashboard-2026-10-03.png",
         "output/playwright/map-hotspots.png", "output/playwright/dispatch-hotspots.json",
-        "output/playwright/weather-model-dashboard-2026-10-03.png",
-        "output/playwright/weather-model-map-2026-10-03.png",
-        "output/playwright/weather-model-mobile-2026-10-03.png",
-        "output/playwright/weather-model-dashboard-2026-10-04.png",
-        "output/playwright/weather-model-mobile-2026-10-04.png",
+        "output/playwright/dashboard-calendar-only-2026-10-04.png",
+        "output/playwright/map-calendar-only-2026-10-04.png",
+        "output/playwright/mobile-calendar-only-2026-10-04.png",
     )
     manifest = [
         {"path": item, "sha256": sha256(root / item)}

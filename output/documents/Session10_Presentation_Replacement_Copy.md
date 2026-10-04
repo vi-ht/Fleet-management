@@ -70,7 +70,7 @@ Batch tạo dữ liệu curated và model artifact; Streaming phát lại sự k
 Vẽ luồng đã chạy:<br>
 `NYC TLC Parquet → Hadoop Streaming / HDFS → Spark ETL + Taxi Zone Lookup → Curated Parquet → Train GBT + baseline → PipelineModel`<br>
 `Historical Replay → Kafka → Spark Structured Streaming + load PipelineModel → score/alert → MongoDB → Dashboard`<br>
-Ghi rõ “local prototype”; thêm Open-Meteo ở Dashboard làm ngữ cảnh. Weather candidate đã đánh giá nhưng không được chọn cho model. Đánh dấu cluster nhiều worker là thiết kế tương lai.
+Ghi rõ “local prototype”; Dashboard hiển thị điểm dự báo, bản đồ zone và fleet mô phỏng. Đánh dấu cluster nhiều worker là thiết kế tương lai.
 
 ## Slide 13 — Batch và huấn luyện model
 
@@ -86,29 +86,28 @@ Xóa “lọc nhiễu GPS”, “spatial outlier removal” và mô tả input C
 
 | Đánh giá temporal holdout | Kết quả |
 |---|---:|
-| Train | 639.393 dòng · 175 ngày (2024-12-31–2026-06-21) |
-| Test trên 44 ngày kế tiếp | 128.644 dòng (2026-06-22–2026-08-05) |
-| MAE | 7,366 điểm score |
-| RMSE | 11,044 điểm score |
-| R² | 0,658 |
-| Precision tại score ≥ 50 | 88,39% |
-| Recall tại score ≥ 50 | 30,88% |
+| Train | 635.798 dòng · 178 ngày (2001-01-01–2026-06-20) |
+| Test trên 45 ngày kế tiếp | 132.249 dòng (2026-06-21–2026-08-05) |
+| MAE | 7,348 điểm score |
+| RMSE | 11,066 điểm score |
+| R² | 0,655 |
+| Precision tại score ≥ 50 | 88,03% |
+| Recall tại score ≥ 50 | 30,79% |
 
-`R²` không phải accuracy. Precision cao nhưng Recall thấp: trong holdout, model bỏ sót nhiều hotspot thực tế. Ở ngưỡng 50: TP=2.314, FP=304, FN=5.180. Thay toàn bộ metric cũ (0,75; 2.197; 5.377; 0,85; 32.149 mẫu).
+`R²` không phải accuracy. Precision cao nhưng Recall thấp: trong holdout, model bỏ sót nhiều hotspot thực tế. Ở ngưỡng 50: TP=2.360, FP=321, FN=5.305. Thay toàn bộ metric cũ (0,75; 2.197; 5.377; 0,85; 32.149 mẫu).
 
 ## Slide 15 — Cảnh báo bất thường
 
 **Baseline:** tính mean và population standard deviation của training hotspot score theo pickup zone, giờ và thứ trong tuần.<br>
 **Ngưỡng:** `mean + 3 × standard deviation`; cần tối thiểu 5 mẫu; ngưỡng được giới hạn tối đa 100.<br>
-**Cảnh báo:** gắn cờ khi predicted score vượt baseline. Đây là cảnh báo thống kê; không tự xác định nguyên nhân như thời tiết hay sự kiện.<br>
+**Cảnh báo:** gắn cờ khi predicted score vượt baseline. Đây là cảnh báo thống kê; cần người vận hành rà soát nguyên nhân.<br>
 Xóa ví dụ 10 phút, số chuyến và threshold tính trên trip count.
 
-## Slide 16 — Weather candidate (nếu slide này là biểu đồ/visual)
+## Slide 16 — Cách đánh giá mô hình
 
-Nhãn đề xuất: **Đã thử thời tiết Open-Meteo; chưa cải thiện dự báo trên temporal holdout**.<br>
-Calendar-only: MAE 7,3657 · RMSE 11,0444 · R² 0,6575.<br>
-Weather candidate: MAE 7,3662 · RMSE 11,0469 · R² 0,6574.<br>
-Weather chỉ là dữ liệu theo giờ tại một tọa độ đại diện trung tâm NYC; hiện hiển thị làm bối cảnh, không làm thay đổi score. Nếu visual hiện tại không phải biểu đồ thời tiết, giữ visual nhưng sửa mọi số/nhãn theo metric này.
+Temporal holdout: 80% ngày đầu để train, 20% ngày cuối để test.<br>
+Đặc trưng: pickup zone, giờ trong ngày và thứ trong tuần.<br>
+Hiển thị MAE, RMSE, R² cùng Precision/Recall ở ngưỡng hotspot; không gọi R² là độ chính xác.
 
 ## Slide 17 — Streaming
 
@@ -119,7 +118,7 @@ Xóa fare/time estimation và “instant live demand”.
 ## Slide 18 — MongoDB và Dashboard
 
 **MongoDB:** lưu hotspot predictions và trạng thái xe mô phỏng để Dashboard truy vấn.<br>
-**Dashboard:** bản đồ polygon NYC Taxi Zone tô theo score; hiển thị weather forecast; xe và gợi ý điều phối đều là mô phỏng. Tuyến xe dựa trên OSRM/OpenStreetMap; không phải vị trí GPS thật.<br>
+**Dashboard:** bản đồ polygon NYC Taxi Zone tô theo score; xe và gợi ý điều phối đều là mô phỏng. Tuyến xe dựa trên OSRM/OpenStreetMap; không phải vị trí GPS thật.<br>
 Đổi “Live Vehicle Dispatching” thành “Fleet simulation & decision support”.
 
 ## Slide 19 — Phần 3
@@ -134,8 +133,8 @@ Vai trò kỹ thuật có thể mô tả theo các phần thực tế: ingestion
 
 ## Slide 21 — Kết luận và giới hạn
 
-**Kết quả:** prototype local kết hợp batch và replay streaming; xử lý snapshot TLC 26,1 triệu chuyến; GBT dự báo relative hotspot score với temporal holdout; Dashboard hiển thị zone score, weather context và fleet simulation.<br>
-**Giới hạn:** Hadoop LocalJobRunner một máy; không có taxi live/GPS thật; weather chưa cải thiện metric; Recall tại ngưỡng 50 là 30,88%; chưa tự động dispatch.<br>
+**Kết quả:** prototype local kết hợp batch và replay streaming; xử lý snapshot TLC 26,1 triệu chuyến; GBT dự báo relative hotspot score với temporal holdout; Dashboard hiển thị zone score và fleet simulation.<br>
+**Giới hạn:** Hadoop LocalJobRunner một máy; không có taxi live/GPS thật; Recall còn có thể bỏ sót hotspot; chưa tự động dispatch.<br>
 **Tiếp theo:** rolling-origin evaluation; thêm lag demand/lịch sự kiện với đặc trưng chỉ dùng dữ liệu có trước thời điểm dự báo; đánh giá Recall hoặc Recall@top-k trước khi chọn model mới.
 
 ## Slide 22 — Cảm ơn
@@ -155,7 +154,7 @@ Xóa tagline “theo thời gian thực”, năm 2030 và ngày 10/11/2025 nếu
 
 ## Nguồn số liệu
 
-- `output/evidence/model_metrics.json` — temporal holdout, candidate weather và anomaly threshold.
+- `output/evidence/model_metrics.json` — temporal holdout và anomaly threshold.
 - `output/evidence/runtime_metrics.json` — quy mô dữ liệu và runtime.
-- `README.md` — phạm vi pipeline, replay, weather, routing và giới hạn triển khai.
+- `README.md` — phạm vi pipeline, replay, routing và giới hạn triển khai.
 - `output/documents/BDA501_Final_Project_Report_Submission.docx` — báo cáo nộp.

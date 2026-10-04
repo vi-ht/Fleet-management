@@ -1,7 +1,7 @@
 {
-  "checked_at_local": "2026-10-04 02:58 Asia/Bangkok",
+  "checked_at_local": "2026-10-04 10:26 Asia/Bangkok",
   "url": "http://localhost:8088/",
-  "result": "pass_with_accessibility_limit",
+  "result": "pass",
   "console": {
     "errors": 0,
     "warnings": 0
@@ -11,40 +11,34 @@
     "/api/zones": 200,
     "/api/model-metrics": 200,
     "/api/upcoming-hotspots?hours=3": 200,
-    "/api/weather": 200,
+    "/api/weather": 404,
     "/api/dashboard?zone=": 200,
     "/api/dashboard?zone=4": 200,
     "/api/vehicles": 200,
     "/api/dispatch": 200
   },
   "navigation": {
-    "working_items": 6,
-    "total_items": 6,
+    "working_items": 4,
+    "total_items": 4,
     "targets": [
       "#tong-quan",
-      "#thoi-tiet",
       "#ban-do",
       "#du-bao",
-      "#dieu-phoi",
-      "#he-thong"
+      "#dieu-phoi"
     ]
-  },
-  "zone_filter": {
-    "select_zone_4_request_status": 200,
-    "reset_to_all_zones": true
   },
   "responsive": [
     {
       "viewport_width": 375,
       "document_scroll_width": 360,
       "horizontal_overflow": false,
-      "nav_rows": 3
+      "nav_rows": 2
     },
     {
       "viewport_width": 768,
       "document_scroll_width": 753,
       "horizontal_overflow": false,
-      "nav_rows": 2
+      "nav_rows": 1
     },
     {
       "viewport_width": 1440,
@@ -57,12 +51,12 @@
     "output/playwright/browser-qa-375.png",
     "output/playwright/browser-qa-768.png",
     "output/playwright/browser-qa-1440.png",
-    "output/playwright/weather-model-dashboard-2026-10-04.png",
-    "output/playwright/weather-model-map-2026-10-04.png",
-    "output/playwright/weather-model-mobile-2026-10-04.png"
+    "output/playwright/dashboard-calendar-only-2026-10-04.png",
+    "output/playwright/map-calendar-only-2026-10-04.png",
+    "output/playwright/mobile-calendar-only-2026-10-04.png"
   ],
   "accessibility": {
-    "manual_snapshot_review": "navigation, buttons, selects and map region expose names/roles",
+    "manual_snapshot_review": "navigation, controls and map region expose names/roles",
     "axe_scan": "not run"
   },
   "visual_regression": "inconclusive; no committed reference baseline"

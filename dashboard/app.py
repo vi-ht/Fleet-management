@@ -1,6 +1,5 @@
 import json
 import os
-import sys
 import threading
 import time
 from datetime import datetime, timedelta
@@ -11,10 +10,7 @@ from flask import Flask, jsonify, render_template_string, request
 from pymongo import MongoClient
 from pyspark.ml import PipelineModel
 from pyspark.sql import SparkSession
-from pyspark.sql.types import DoubleType, IntegerType, StringType, StructField, StructType
-
-sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
-from weather import WEATHER_FIELDS, TIMEZONE, get_forecast, weather_description, weather_values_for_hour
+from pyspark.sql.types import IntegerType, StringType, StructField, StructType
 
 
 app = Flask(__name__)
@@ -26,14 +22,7 @@ forecast_lock = threading.Lock()
 forecast_cache = {"created_at": 0.0, "payload": None}
 serving_spark = None
 serving_model = None
-serving_metrics = None
-weather_medians = {}
-metrics_path = Path(os.getenv("MODEL_METRICS_PATH", "/workspace/data/results/model_metrics.json"))
-try:
-    serving_metrics = json.loads(metrics_path.read_text(encoding="utf-8"))
-    weather_medians = serving_metrics.get("weather_medians_for_fallback", {})
-except (OSError, ValueError):
-    serving_metrics = {}
+APP_TIMEZONE = "America/New_York"
 
 
 PAGE = """
@@ -60,27 +49,25 @@ PAGE = """
     .fleet-list { max-height:490px; overflow:auto; padding-right:3px; } .vehicle { display:flex; align-items:center; justify-content:space-between; gap:9px; padding:12px 2px; border-bottom:1px solid #edf0f4; } .vehicle:last-child { border-bottom:0; } .vehicle-id { font-weight:700; font-size:13px; } .vehicle-meta { color:var(--muted); font-size:11px; line-height:1.45; margin-top:4px; } .status { padding:5px 8px; border-radius:999px; font-size:10px; font-weight:700; white-space:nowrap; } .status.available { color:#12694f; background:#e6f5ee; } .status.occupied { color:#86570e; background:#fff4d9; }
     .main-grid { display:grid; grid-template-columns:minmax(0,1.35fr) minmax(300px,.65fr); gap:15px; margin-bottom:16px; } .chart-wrap { height:255px; position:relative; } .chart-wrap svg { width:100%; height:100%; overflow:visible; } .axis { stroke:#e1e6ed; stroke-width:1; } .axis-label { fill:#718096; font-size:12px; } .line { fill:none; stroke:#168465; stroke-width:3; stroke-linejoin:round; stroke-linecap:round; } .area { fill:url(#area); opacity:.32; } .chart-note { color:var(--muted); font-size:12px; margin-top:6px; }
     .bars { display:flex; flex-direction:column; gap:14px; padding-top:3px; } .bar-row { display:grid; grid-template-columns:48px 1fr 58px; align-items:center; gap:9px; font-size:12px; } .bar-bg { height:9px; border-radius:99px; background:#edf0f4; overflow:hidden; } .bar-fill { height:100%; border-radius:99px; background:linear-gradient(90deg,#4e9bc5,var(--green)); } .bar-value { text-align:right; color:var(--muted); font-variant-numeric:tabular-nums; }
-    .dispatch-grid { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:10px; } .dispatch-card { border:1px solid #e7ebf0; background:#fbfcfd; border-radius:10px; padding:13px; } .dispatch-card strong { display:block; color:#17694f; margin-bottom:6px; font-size:13px; } .dispatch-card span { color:var(--muted); font-size:12px; line-height:1.5; } .forecast-grid { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:10px; } .forecast-card { border:1px solid #e7ebf0; background:#fbfcfd; border-radius:10px; padding:14px; min-height:135px; } .forecast-card h3 { margin:0 0 10px; color:#315e80; font-size:14px; } .forecast-zone { display:flex; justify-content:space-between; gap:8px; padding:7px 0; border-bottom:1px solid #edf0f4; font-size:12px; } .forecast-zone b { color:var(--text); } .forecast-zone span { color:#8a5a11; font-variant-numeric:tabular-nums; } .forecast-note { color:var(--muted); font-size:12px; margin:-3px 0 12px; } .weather-grid { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:10px; } .weather-card { border:1px solid #e7ebf0; background:#fbfcfd; border-radius:10px; padding:14px; } .weather-card h3 { margin:0 0 8px; color:#315e80; font-size:14px; } .weather-temp { font-size:25px; font-weight:750; color:var(--navy); } .weather-detail { color:var(--muted); font-size:12px; line-height:1.55; margin-top:5px; }
+    .dispatch-grid { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:10px; } .dispatch-card { border:1px solid #e7ebf0; background:#fbfcfd; border-radius:10px; padding:13px; } .dispatch-card strong { display:block; color:#17694f; margin-bottom:6px; font-size:13px; } .dispatch-card span { color:var(--muted); font-size:12px; line-height:1.5; } .forecast-grid { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:10px; } .forecast-card { border:1px solid #e7ebf0; background:#fbfcfd; border-radius:10px; padding:14px; min-height:135px; } .forecast-card h3 { margin:0 0 10px; color:#315e80; font-size:14px; } .forecast-zone { display:flex; justify-content:space-between; gap:8px; padding:7px 0; border-bottom:1px solid #edf0f4; font-size:12px; } .forecast-zone b { color:var(--text); } .forecast-zone span { color:#8a5a11; font-variant-numeric:tabular-nums; } .forecast-note { color:var(--muted); font-size:12px; margin:-3px 0 12px; }
     .table-wrap { max-height:350px; overflow:auto; } table { width:100%; border-collapse:collapse; font-size:12px; } th,td { padding:11px 9px; text-align:left; border-bottom:1px solid #edf0f4; white-space:nowrap; } th { position:sticky; top:0; background:#f7f9fb; color:#627187; font-weight:700; } tbody tr:hover { background:#f8fafc; } .pill { padding:4px 8px; border-radius:999px; background:#e7f5ef; color:#17694f; font-size:10px; font-weight:700; } .pill.alert { color:#9f1239; background:#ffe4e6; } .pill.normal { color:#17694f; background:#e7f5ef; }
-    .pipeline { display:grid; grid-template-columns:repeat(6,1fr); gap:8px; } .stage { border:1px solid #e7ebf0; background:#fbfcfd; border-radius:9px; padding:10px 8px; text-align:center; color:#58697e; font-size:11px; font-weight:600; } .stage b { display:block; color:var(--green); font-size:17px; margin-bottom:4px; } footer { color:var(--muted); font-size:11px; margin-top:15px; }
+    footer { color:var(--muted); font-size:11px; margin-top:15px; }
     @media (max-width:1250px) { .cards { grid-template-columns:repeat(4,minmax(0,1fr)); } .map-layout { grid-template-columns:minmax(0,1.4fr) minmax(285px,.8fr); } } @media (max-width:950px) { main { padding:22px 18px 38px; } .cards { grid-template-columns:repeat(4,minmax(0,1fr)); } .map-layout,.main-grid { grid-template-columns:1fr; } .fleet-list { max-height:360px; } #map { height:420px; } nav { overflow:visible; flex-wrap:wrap; } nav a { white-space:normal; } }
-    @media (max-width:650px) { main { padding:18px 12px 30px; } header { align-items:flex-start; } .brand { gap:11px; } .logo { width:40px; height:40px; } .eyebrow { font-size:9px; } h1 { font-size:24px; } .subtitle { font-size:12px; } .live { padding:7px 9px; font-size:0; } .live::after { content:"API"; font-size:10px; } nav { margin-left:-2px; margin-right:-2px; } nav a { padding:9px 11px; font-size:12px; } .toolbar { gap:9px; padding:11px; } .toolbar label:first-child { width:100%; } select { flex:1; min-width:0; } .refresh-info { width:100%; margin-left:0; } .cards { grid-template-columns:repeat(2,minmax(0,1fr)); gap:8px; } .card { min-height:90px; padding:12px; } .label { font-size:10px; } .value { margin-top:12px; font-size:23px; } section { padding:15px; } #map { height:350px; } .section-head { align-items:flex-start; } .hint { text-align:right; } .dispatch-grid,.forecast-grid,.weather-grid { grid-template-columns:1fr; } .dispatch-card { padding:12px; } .forecast-card { min-height:auto; } .pipeline { grid-template-columns:repeat(3,1fr); } .table-wrap { margin:0 -5px; } }
+    @media (max-width:650px) { main { padding:18px 12px 30px; } header { align-items:flex-start; } .brand { gap:11px; } .logo { width:40px; height:40px; } .eyebrow { font-size:9px; } h1 { font-size:24px; } .subtitle { font-size:12px; } .live { padding:7px 9px; font-size:0; } .live::after { content:"API"; font-size:10px; } nav { margin-left:-2px; margin-right:-2px; } nav a { padding:9px 11px; font-size:12px; } .toolbar { gap:9px; padding:11px; } .toolbar label:first-child { width:100%; } select { flex:1; min-width:0; } .refresh-info { width:100%; margin-left:0; } .cards { grid-template-columns:repeat(2,minmax(0,1fr)); gap:8px; } .card { min-height:90px; padding:12px; } .label { font-size:10px; } .value { margin-top:12px; font-size:23px; } section { padding:15px; } #map { height:350px; } .section-head { align-items:flex-start; } .hint { text-align:right; } .dispatch-grid,.forecast-grid { grid-template-columns:1fr; } .dispatch-card { padding:12px; } .forecast-card { min-height:auto; } .table-wrap { margin:0 -5px; } }
   </style>
 </head>
 <body><main>
   <header><div class="brand"><div class="logo">T</div><div><div class="eyebrow">BDA501 · NYC TAXI REPLAY DEMO</div><h1>Phân tích hotspot và mô phỏng đội xe</h1><p class="subtitle">Dữ liệu TLC đã replay · điểm hotspot là điểm tương đối 0–100, không phải số chuyến</p></div></div><div class="live" id="connectionStatus" data-state="loading" role="status" aria-live="polite"><span id="connection">Đang kết nối</span></div></header>
-  <nav><a class="active" href="#tong-quan">Tổng quan</a><a href="#thoi-tiet">Thời tiết NYC</a><a href="#ban-do">Bản đồ & xe mô phỏng</a><a href="#du-bao">Phân tích hotspot</a><a href="#dieu-phoi">Gợi ý mô phỏng</a><a href="#he-thong">Pipeline hệ thống</a></nav>
+  <nav><a class="active" href="#tong-quan">Tổng quan</a><a href="#ban-do">Bản đồ & xe mô phỏng</a><a href="#du-bao">Phân tích hotspot</a><a href="#dieu-phoi">Gợi ý mô phỏng</a></nav>
   <div class="toolbar"><label for="zone">Lọc score theo pickup zone</label><select id="zone"><option value="">Tất cả zone</option></select><button id="refresh" type="button">↻ Cập nhật</button><label><input id="auto" type="checkbox" checked> Tự động cập nhật</label><span class="refresh-info">Cập nhật lần cuối: <span id="updated">Chưa có dữ liệu</span></span></div>
 
   <div id="tong-quan" class="cards"><div class="card"><div class="label">Dashboard API</div><div class="value small" id="pipeline">Đang kết nối</div></div><div class="card"><div class="label">Xe mô phỏng</div><div class="value" id="fleetTotal">—</div></div><div class="card"><div class="label">Xe đang di chuyển</div><div class="value green" id="fleetMoving">—</div></div><div class="card"><div class="label">Xe tái bố trí</div><div class="value green" id="fleetAvailable">—</div></div><div class="card"><div class="label">Xe mô phỏng có khách</div><div class="value orange" id="fleetOccupied">—</div></div><div class="card"><div class="label">Bản ghi score replay</div><div class="value" id="count">—</div></div><div class="card"><div class="label">Pickup zone có dữ liệu</div><div class="value" id="zones">—</div></div><div class="card"><div class="label">MAE / RMSE / R² (điểm)</div><div class="value small" id="modelMetrics">Chưa có chỉ số</div><div class="metric-meta" id="modelClassificationMetrics">Precision / Recall: —</div></div></div>
 
-  <section id="thoi-tiet" style="margin-bottom:16px"><div class="section-head"><h2>Thời tiết NYC · Open-Meteo</h2><span class="hint" id="weatherStatus">Đang tải forecast...</span></div><div class="forecast-note">Điểm thời tiết đại diện khu trung tâm NYC (40.7128, −74.0060), theo giờ địa phương New York; không phải số đo riêng từng zone.</div><div id="weatherNow" class="weather-grid"><div class="chart-note">Đang truy vấn Open-Meteo...</div></div><div class="chart-note">Nguồn dữ liệu: <a href="https://open-meteo.com/" target="_blank" rel="noopener noreferrer">Open-Meteo</a> · API forecast miễn phí theo điều khoản phi thương mại.</div></section>
   <div id="ban-do" class="map-layout"><section><div class="section-head"><h2>Hotspot và đội xe mô phỏng</h2><span class="hint">260 LocationID · 263 polygon parts · NYC Taxi Zone</span></div><div class="map-controls"><label for="mapForecastHour">Score forecast map cho:</label><select id="mapForecastHour"><option value="0">Đang tải forecast...</option></select></div><div id="map" role="region" aria-label="Bản đồ taxi zone NYC tô màu theo dự báo hotspot cùng vị trí xe mô phỏng"></div><div class="legend"><span><i class="dot hotspot"></i>Hotspot ≥ 50</span><span><i class="dot medium"></i>Score 25–49</span><span><i class="dot available"></i>Xe tái bố trí</span><span><i class="dot occupied"></i>Xe có khách</span><span id="movementStatus">—</span><span id="latestVehicle">—</span></div><div class="chart-note">Score là dự báo tương đối 0–100 của từng LocationID, màu phủ dùng polygon Taxi Zone; một LocationID có thể gồm nhiều polygon rời nhau. Vị trí xe vẫn là mô phỏng. Nền zone: NYC TLC Taxi Zone boundaries.</div></section><section><div class="section-head"><h2>Danh sách xe mô phỏng</h2><span class="hint" id="fleetCount">—</span></div><div id="fleetList" class="fleet-list"><div class="chart-note">Đang tải dữ liệu xe...</div></div></section></div>
 
   <div id="du-bao" class="main-grid"><section><h2>Score hotspot theo giờ replay</h2><div class="chart-wrap"><svg id="trend" role="img" aria-label="Điểm hotspot trung bình theo giờ replay, thang 0 đến 100" viewBox="0 0 760 240" preserveAspectRatio="none"><defs><linearGradient id="area" x1="0" x2="0" y1="0" y2="1"><stop offset="0" stop-color="#55d6be" stop-opacity=".45"/><stop offset="1" stop-color="#55d6be" stop-opacity="0"/></linearGradient></defs><path class="axis" d="M30 210H750M30 115H750M30 20H750"/><text class="axis-label" x="2" y="24">100</text><text class="axis-label" x="8" y="119">50</text><text class="axis-label" x="18" y="214">0</text><text id="trendEmpty" class="axis-label" x="390" y="118" text-anchor="middle">Chưa có dữ liệu theo giờ</text><text id="trendStart" class="axis-label" x="30" y="234">—</text><text id="trendEnd" class="axis-label" x="750" y="234" text-anchor="end">—</text><path id="areaPath" class="area"/><path id="linePath" class="line"/></svg></div><div class="chart-note">Điểm hotspot trung bình 0–100 của các bản ghi đã replay; đây không phải số chuyến xe.</div></section><section><h2>Top pickup zone theo score replay</h2><div id="ranking" class="bars"><div class="chart-note">Đang tải...</div></div></section></div>
   <section id="dieu-phoi" style="margin-bottom:16px"><div class="section-head"><h2>Gợi ý điều phối mô phỏng</h2><span class="hint">Ghép xe mô phỏng rảnh theo điểm trung bình đã replay</span></div><div class="chart-note">Gợi ý minh họa, không phải lệnh điều xe thực tế.</div><div id="dispatch" class="dispatch-grid"><div class="chart-note">Đang tính đề xuất...</div></div></section>
   <section id="diem-nong-sap-toi" style="margin-bottom:16px"><div class="section-head"><h2>Dự báo hotspot 3 giờ tới</h2><span class="hint" id="forecastHeadline">Đang tải model forecast...</span></div><div class="forecast-note" id="forecastNote">Dự báo từng pickup zone cho các giờ kế tiếp. Điểm 0–100 là tương đối; điều phối bên dưới chỉ là gợi ý mô phỏng.</div><div id="upcomingHotspots" class="forecast-grid"><div class="chart-note">Đang chạy dự báo...</div></div></section>
-  <section id="he-thong" style="margin-bottom:16px"><div class="section-head"><h2>Các tầng dữ liệu</h2><span class="hint">Kiến trúc đang sử dụng · trạng thái dịch vụ chưa được probe riêng</span></div><div class="pipeline"><div class="stage"><b>01</b>HDFS</div><div class="stage"><b>02</b>MapReduce</div><div class="stage"><b>03</b>Parquet ETL</div><div class="stage"><b>04</b>Model AI</div><div class="stage"><b>05</b>Kafka realtime</div><div class="stage"><b>06</b>MongoDB</div></div></section>
   <section><h2>Score model mới nhất trong replay</h2><div class="table-wrap"><table><thead><tr><th>Mã sự kiện</th><th>Thời gian event (replay)</th><th>Pickup zone</th><th>Hotspot score</th><th>Phân loại</th><th>Trạng thái</th></tr></thead><tbody id="rows"><tr><td colspan="6">Đang tải...</td></tr></tbody></table></div></section>
   <footer>Mô phỏng liên tục: producer → Kafka → model inference → MongoDB · Tự động làm mới dashboard 3 giây</footer>
 </main>
@@ -93,16 +80,13 @@ function updateHotspotMap(){if(!zoneLayer||!zoneLayer.getLayers().length)return;
 async function loadZones(){const zones=await fetch('/api/zones').then(r=>r.json());knownZones=zones;zones.forEach(z=>{const o=document.createElement('option');o.value=z;o.textContent=`Pickup zone ${z}`;zoneSelect.appendChild(o);});}
 function drawTrend(series){const values=series.map(x=>Number(x.value||0)),max=100,left=30,top=20,width=720,height=190;document.querySelector('#trendEmpty').style.display=values.length?'none':'block';const stamp=value=>{const text=String(value||'');return text.length>=13?`${text.slice(11,13)}:00`:text.slice(0,10);};document.querySelector('#trendStart').textContent=values.length?stamp(series[0].bucket):'—';document.querySelector('#trendEnd').textContent=values.length?stamp(series[series.length-1].bucket):'—';const points=values.map((v,i)=>`${left+(values.length===1?width/2:i*width/(values.length-1))},${top+height-(Math.max(0,Math.min(max,v))/max)*height}`).join(' ');document.querySelector('#linePath').setAttribute('d',points?`M ${points}`:'');document.querySelector('#areaPath').setAttribute('d',points?`M ${left} ${top+height} L ${points} L ${left+width} ${top+height} Z`:'');}
  function renderDispatch(data){document.querySelector('#dispatch').innerHTML=data.recommendations.length?data.recommendations.map(x=>`<div class="dispatch-card"><strong>🚕 ${esc(x.vehicle_id)} → Pickup zone ${esc(x.target_zone)}</strong><span>Score replay trung bình: ${Number(x.hotspot_score).toFixed(0)}/100 · Xe mô phỏng từ zone ${esc(x.from_zone)} · ${x.reason}</span></div>`).join(''):'<div class="chart-note">Chưa có xe mô phỏng rảnh hoặc chưa có score.</div>';}
- renderUpcoming=function renderUpcomingWithModelInputs(data){const headline=document.querySelector('#forecastHeadline');headline.textContent=data.available?`Cập nhật ${esc(data.generated_at)} · ${esc(data.model)}${data.weather_available?' · Open-Meteo':' · weather fallback'}`:`Forecast chưa sẵn sàng: ${esc(data.message||'Không có model')}`;document.querySelector('#forecastNote').textContent=data.weather_used_by_model?'Model dùng zone, giờ, thứ và forecast Open-Meteo tại NYC city-center làm một đặc trưng thời tiết chung. Score 0–100 là tương đối; xe/điều phối là mô phỏng.':'So sánh temporal holdout chưa chứng minh weather candidate tốt hơn; model hiện tại dùng zone, giờ và thứ. Thời tiết bên dưới là bối cảnh, chưa tác động score. Score 0–100 là tương đối.';const select=document.querySelector('#mapForecastHour');activeForecasts=data.forecasts||[];select.innerHTML=activeForecasts.map((window,index)=>`<option value="${index}">${esc(window.label)}</option>`).join('')||'<option value="0">Forecast chưa có</option>';select.onchange=updateHotspotMap;document.querySelector('#upcomingHotspots').innerHTML=activeForecasts.map(window=>`<div class="forecast-card"><h3>${esc(window.label)} · ${Number(window.weather.temperature_2m).toFixed(1)}°C</h3><div class="weather-detail">${esc(window.weather.description)} · mưa ${Number(window.weather.precipitation).toFixed(1)} mm · tuyết ${Number(window.weather.snowfall).toFixed(1)} cm · gió ${Number(window.weather.wind_speed_10m).toFixed(0)} km/h</div>${window.weather.weather_missing?'<div class="chart-note">Hourly forecast thiếu; dùng median train.</div>':''}${window.zones.slice(0,5).map(zone=>`<div class="forecast-zone"><b>Pickup zone ${esc(zone.zone)}</b><span>${Number(zone.hotspot_score).toFixed(0)}/100 · ${esc(zone.hotspot_level)}${zone.alert_flag==='CRITICAL_ANOMALY'?' · ⚠️ bất thường':''}<br>Ngưỡng 3σ ${Number(zone.anomaly_threshold).toFixed(1)} · train μ=${Number(zone.historical_mean_score).toFixed(1)}, σ=${Number(zone.historical_stddev_score).toFixed(1)}, n=${Number(zone.historical_baseline_samples)}</span></div>`).join('')||'<div class="chart-note">Không có zone để dự báo.</div>'}</div>`).join('')||'<div class="chart-note">Không có dự báo sẵn có.</div>';updateHotspotMap();};
- function renderWeather(data){const status=document.querySelector('#weatherStatus'),container=document.querySelector('#weatherNow');if(!data.available){status.textContent='Không kết nối được Open-Meteo';container.innerHTML=`<div class="chart-note">${esc(data.message||'Thời tiết hiện không khả dụng.')}</div>`;return;}status.textContent=`Open-Meteo · ${esc(data.timezone)} · cập nhật ${esc(data.generated_at)}`;container.innerHTML=data.hours.map(hour=>`<div class="weather-card"><h3>${esc(hour.label)}</h3><div class="weather-temp">${Number(hour.temperature_2m).toFixed(1)}°C</div><div class="weather-detail">${esc(hour.description)}<br>Mưa ${Number(hour.precipitation).toFixed(1)} mm · tuyết ${Number(hour.snowfall).toFixed(1)} cm<br>Gió ${Number(hour.wind_speed_10m).toFixed(0)} km/h · ẩm ${Number(hour.relative_humidity_2m).toFixed(0)}%</div></div>`).join('');}
- function renderFleet(items){const available=items.filter(x=>x.status==='available').length,occupied=items.filter(x=>x.status==='occupied').length;document.querySelector('#fleetTotal').textContent=items.length;document.querySelector('#fleetAvailable').textContent=available;document.querySelector('#fleetOccupied').textContent=occupied;document.querySelector('#fleetCount').textContent=`${items.length} xe`;document.querySelector('#fleetList').innerHTML=items.length?items.map(v=>`<div class="vehicle"><div><div class="vehicle-id">${esc(v.vehicle_id)}</div><div class="vehicle-meta">Khu ${esc(v.pickup_zone)} → ${esc(v.dropoff_zone)} · ${Number(v.speed_kmh||0)} km/h</div></div><span class="status ${v.status}">${v.status==='available'?'Rảnh':'Có khách'}</span></div>`).join(''):'<div class="chart-note">Chưa có snapshot xe.</div>';if(markers){markers.clearLayers();const bounds=[];items.forEach(v=>{const position=[Number(v.latitude),Number(v.longitude)];bounds.push(position);const icon=L.divIcon({className:'',html:`<div class="taxi-marker ${v.status}" title="${esc(v.vehicle_id)}">🚕</div>`,iconSize:[42,42],iconAnchor:[21,21]});L.marker(position,{icon,zIndexOffset:1000}).bindPopup(`<b>${esc(v.vehicle_id)}</b><br>Trạng thái: ${v.status==='available'?'Xe rảnh':'Đang có khách'}<br>Khu vực: ${esc(v.pickup_zone)} → ${esc(v.dropoff_zone)}<br>Tốc độ: ${Number(v.speed_kmh||0)} km/h`).addTo(markers);});if(bounds.length && !window.mapHasFitted){map.fitBounds(bounds,{padding:[30,30],maxZoom:12});window.mapHasFitted=true;}}document.querySelector('#latestVehicle').textContent=items.length?`Snapshot #${items[0].simulation_cycle} · ${items[0].updated_at}`:'Chưa có snapshot';}
+ renderUpcoming=function renderUpcomingCalendarModel(data){const headline=document.querySelector('#forecastHeadline');headline.textContent=data.available?`Cập nhật ${esc(data.generated_at)} · ${esc(data.model)}`:`Forecast chưa sẵn sàng: ${esc(data.message||'Không có model')}`;document.querySelector('#forecastNote').textContent='Dự báo hotspot từ pickup zone, giờ và thứ trong tuần. Điểm 0–100 là tương đối; xe và gợi ý điều phối là mô phỏng.';const select=document.querySelector('#mapForecastHour');activeForecasts=data.forecasts||[];select.innerHTML=activeForecasts.map((window,index)=>`<option value="${index}">${esc(window.label)}</option>`).join('')||'<option value="0">Forecast chưa có</option>';select.onchange=updateHotspotMap;document.querySelector('#upcomingHotspots').innerHTML=activeForecasts.map(window=>`<div class="forecast-card"><h3>${esc(window.label)}</h3>${window.zones.slice(0,5).map(zone=>`<div class="forecast-zone"><b>Pickup zone ${esc(zone.zone)}</b><span>${Number(zone.hotspot_score).toFixed(0)}/100 · ${esc(zone.hotspot_level)}${zone.alert_flag==='CRITICAL_ANOMALY'?' · ⚠️ bất thường':''}<br>Ngưỡng 3σ ${Number(zone.anomaly_threshold).toFixed(1)} · train μ=${Number(zone.historical_mean_score).toFixed(1)}, σ=${Number(zone.historical_stddev_score).toFixed(1)}, n=${Number(zone.historical_baseline_samples)}</span></div>`).join('')||'<div class="chart-note">Không có zone để dự báo.</div>'}</div>`).join('')||'<div class="chart-note">Không có dự báo sẵn có.</div>';updateHotspotMap();}; function renderFleet(items){const available=items.filter(x=>x.status==='available').length,occupied=items.filter(x=>x.status==='occupied').length;document.querySelector('#fleetTotal').textContent=items.length;document.querySelector('#fleetAvailable').textContent=available;document.querySelector('#fleetOccupied').textContent=occupied;document.querySelector('#fleetCount').textContent=`${items.length} xe`;document.querySelector('#fleetList').innerHTML=items.length?items.map(v=>`<div class="vehicle"><div><div class="vehicle-id">${esc(v.vehicle_id)}</div><div class="vehicle-meta">Khu ${esc(v.pickup_zone)} → ${esc(v.dropoff_zone)} · ${Number(v.speed_kmh||0)} km/h</div></div><span class="status ${v.status}">${v.status==='available'?'Rảnh':'Có khách'}</span></div>`).join(''):'<div class="chart-note">Chưa có snapshot xe.</div>';if(markers){markers.clearLayers();const bounds=[];items.forEach(v=>{const position=[Number(v.latitude),Number(v.longitude)];bounds.push(position);const icon=L.divIcon({className:'',html:`<div class="taxi-marker ${v.status}" title="${esc(v.vehicle_id)}">🚕</div>`,iconSize:[42,42],iconAnchor:[21,21]});L.marker(position,{icon,zIndexOffset:1000}).bindPopup(`<b>${esc(v.vehicle_id)}</b><br>Trạng thái: ${v.status==='available'?'Xe rảnh':'Đang có khách'}<br>Khu vực: ${esc(v.pickup_zone)} → ${esc(v.dropoff_zone)}<br>Tốc độ: ${Number(v.speed_kmh||0)} km/h`).addTo(markers);});if(bounds.length && !window.mapHasFitted){map.fitBounds(bounds,{padding:[30,30],maxZoom:12});window.mapHasFitted=true;}}document.querySelector('#latestVehicle').textContent=items.length?`Snapshot #${items[0].simulation_cycle} · ${items[0].updated_at}`:'Chưa có snapshot';}
   let refreshInProgress=false;
 async function fetchJson(url){const response=await fetch(url);if(!response.ok)throw new Error(`HTTP ${response.status} from ${url}`);return response.json();}
 async function loadModelMetrics(){try{const metrics=await fetchJson('/api/model-metrics'),value=document.querySelector('#modelMetrics'),classification=document.querySelector('#modelClassificationMetrics'),formatMetric=number=>Number.isFinite(Number(number))?Number(number).toFixed(2):'—',formatRate=number=>Number.isFinite(Number(number))?`${(Number(number)*100).toFixed(1)}%`:'—',evaluation=String(metrics.evaluation_method||'').toLowerCase().includes('temporal')?'Temporal holdout':'Holdout';value.textContent=metrics.available?`${formatMetric(metrics.mae)} / ${formatMetric(metrics.rmse)} / ${formatMetric(metrics.r2)}`:'Chưa có chỉ số';classification.textContent=metrics.available?`${evaluation} · P ${formatRate(metrics.hotspot_precision)} · R ${formatRate(metrics.hotspot_recall)} · ngưỡng ${formatMetric(metrics.hotspot_classification_threshold)}`:'Precision / Recall: —';value.title=metrics.available?`${metrics.model} · ${Number(metrics.evaluation_rows).toLocaleString()} holdout rows · ${metrics.evaluation_method}; MAE/RMSE tính bằng điểm hotspot; R² có thể âm.`:'Chạy bước train model để tạo kết quả holdout';}catch(error){document.querySelector('#modelMetrics').textContent='Không khả dụng';document.querySelector('#modelClassificationMetrics').textContent='Precision / Recall: —';}}
   async function loadUpcoming(){try{renderUpcoming(await fetchJson('/api/upcoming-hotspots?hours=3'));}catch(error){renderUpcoming({available:false,message:error.message,forecasts:[]});}}
-async function loadWeather(){try{renderWeather(await fetchJson('/api/weather'));}catch(error){renderWeather({available:false,message:error.message});}}
 async function refresh(){if(refreshInProgress)return;refreshInProgress=true;const connection=document.querySelector('#connection'),connectionStatus=document.querySelector('#connectionStatus'),pipeline=document.querySelector('#pipeline'),refreshButton=document.querySelector('#refresh');refreshButton.disabled=true;connection.textContent='Đang cập nhật';connectionStatus.dataset.state='loading';try{const zone=encodeURIComponent(zoneSelect.value),[data,fleet,dispatch]=await Promise.all([fetchJson(`/api/dashboard?zone=${zone}`),fetchJson('/api/vehicles'),fetchJson('/api/dispatch')]);connection.textContent='API kết nối';connectionStatus.dataset.state='ok';pipeline.textContent='Đang hoạt động';pipeline.className='value small green';document.querySelector('#count').textContent=Number(data.summary.count).toLocaleString();document.querySelector('#zones').textContent=Number(data.summary.zones).toLocaleString();document.querySelector('#updated').textContent=new Date().toLocaleTimeString();renderFleet(fleet.vehicles);renderDispatch(dispatch);drawTrend(data.series);const max=Math.max(...data.ranking.map(x=>Number(x.value||0)),1);document.querySelector('#ranking').innerHTML=data.ranking.length?data.ranking.map(x=>`<div class="bar-row"><span>Zone ${esc(x.zone)}</span><div class="bar-bg"><div class="bar-fill" style="width:${Math.max(3,Number(x.value)/max*100)}"></div></div><span class="bar-value">${Number(x.value).toFixed(0)}/100</span></div>`).join(''):'<div class="chart-note">Chưa có dữ liệu để xếp hạng.</div>';document.querySelector('#rows').innerHTML=data.predictions.length?data.predictions.map(p=>`<tr><td>${esc(p.event_id)}</td><td>${esc(p.event_time)}</td><td>Zone ${esc(p.pickup_zone)}</td><td><b>${Number(p.hotspot_score||0).toFixed(0)}/100</b></td><td>${esc(p.hotspot_level||'—')}</td><td><span title="Threshold 3σ ${Number(p.anomaly_threshold||100).toFixed(1)} · n=${Number(p.historical_baseline_samples||0)}" class="pill ${p.alert_flag==='CRITICAL_ANOMALY'?'alert':'normal'}">${esc(p.alert_flag||'NORMAL')}</span></td></tr>`).join(''):'<tr><td colspan="6">Chưa có bản ghi replay.</td></tr>';document.querySelector('#updated').title=`Lần làm mới thành công: ${new Date().toLocaleString()}`;}catch(error){console.error('Dashboard refresh failed',error);connection.textContent='Mất kết nối';connectionStatus.dataset.state='error';pipeline.textContent='Không truy cập được';pipeline.className='value small red';document.querySelector('#updated').textContent='Làm mới thất bại';}finally{refreshInProgress=false;refreshButton.disabled=false;}}
-zoneSelect.addEventListener('change',refresh);document.querySelector('#refresh').addEventListener('click',()=>{refresh();loadModelMetrics();loadUpcoming();loadWeather();});loadTaxiZones().catch(error=>{console.error('Taxi zone GeoJSON failed',error);document.querySelector('#map').setAttribute('aria-label','Không tải được ranh giới Taxi Zone');});loadZones().then(refresh).catch(error=>{console.error('Zone list failed',error);refresh();});loadModelMetrics();loadUpcoming();loadWeather();setInterval(()=>{if(document.querySelector('#auto').checked){refresh();loadModelMetrics();}},3000);setInterval(loadWeather,1800000);setInterval(loadUpcoming,600000);
+zoneSelect.addEventListener('change',refresh);document.querySelector('#refresh').addEventListener('click',()=>{refresh();loadModelMetrics();loadUpcoming();});loadTaxiZones().catch(error=>{console.error('Taxi zone GeoJSON failed',error);document.querySelector('#map').setAttribute('aria-label','Không tải được ranh giới Taxi Zone');});loadZones().then(refresh).catch(error=>{console.error('Zone list failed',error);refresh();});loadModelMetrics();loadUpcoming();setInterval(()=>{if(document.querySelector('#auto').checked){refresh();loadModelMetrics();}},3000);setInterval(loadUpcoming,600000);
 
 // Keep one Leaflet marker per vehicle and interpolate between Kafka snapshots.
 // This makes the simulation visibly continuous instead of replacing all markers
@@ -216,7 +200,7 @@ def dispatch():
 
 @app.get("/api/upcoming-hotspots")
 def upcoming_hotspots():
-    """Forecast future hourly hotspot scores from model inputs and weather forecasts."""
+    """Forecast future hourly hotspot scores from zone and calendar features."""
     global serving_spark, serving_model
     now = time.monotonic()
     hours = min(max(request.args.get("hours", 3, type=int), 1), 6)
@@ -232,7 +216,7 @@ def upcoming_hotspots():
                 serving_spark = (
                     SparkSession.builder.master("local[2]")
                     .appName("taxi-hotspot-dashboard-forecast")
-                    .config("spark.sql.session.timeZone", TIMEZONE)
+                    .config("spark.sql.session.timeZone", APP_TIMEZONE)
                     .getOrCreate()
                 )
                 serving_spark.sparkContext.setLogLevel("ERROR")
@@ -245,17 +229,8 @@ def upcoming_hotspots():
                 )
             except (OSError, ValueError):
                 historical_baseline = {}
-            try:
-                weather_forecast = get_forecast()
-                weather_available = bool(weather_forecast)
-            except Exception as error:
-                weather_forecast = {}
-                weather_available = False
-                weather_message = str(error)[:200]
-            else:
-                weather_message = None
 
-            local_now = datetime.now(ZoneInfo(TIMEZONE)).replace(minute=0, second=0, microsecond=0)
+            local_now = datetime.now(ZoneInfo(APP_TIMEZONE)).replace(minute=0, second=0, microsecond=0)
             first_hour = local_now + timedelta(hours=1)
             forecast_hours = [first_hour + timedelta(hours=index) for index in range(hours)]
             geojson_path = Path(__file__).resolve().parent / "static" / "taxi_zones.geojson"
@@ -264,39 +239,28 @@ def upcoming_hotspots():
                 zones = sorted({str(feature["properties"]["LocationID"]) for feature in geojson["features"]}, key=int)
             except (OSError, ValueError, KeyError, TypeError):
                 zones = sorted(collection.distinct("pickup_zone"), key=lambda value: int(value) if str(value).isdigit() else 9999)
+
             input_schema = StructType(
                 [
-                    StructField("weather_hour", StringType(), False),
+                    StructField("forecast_hour", StringType(), False),
                     StructField("pickup_zone", StringType(), False),
                     StructField("pickup_hour", IntegerType(), False),
                     StructField("pickup_dow", IntegerType(), False),
-                    *[StructField(name, DoubleType(), False) for name in WEATHER_FIELDS if name != "weather_code"],
-                    StructField("weather_code", StringType(), False),
-                    StructField("weather_missing", DoubleType(), False),
                 ]
             )
-            predictions_input = []
-            weather_by_hour = {}
-            for forecast_time in forecast_hours:
-                hour_key = forecast_time.strftime("%Y-%m-%dT%H")
-                weather = weather_values_for_hour(hour_key, weather_forecast, weather_medians)
-                weather["description"] = weather_description(weather.get("weather_code"))
-                weather_by_hour[hour_key] = weather
-                for zone in zones:
-                    predictions_input.append(
-                        {
-                            "weather_hour": hour_key,
-                            "pickup_zone": str(zone),
-                            "pickup_hour": forecast_time.hour,
-                            "pickup_dow": (forecast_time.weekday() + 1) % 7,
-                            **{name: float(weather[name]) for name in WEATHER_FIELDS if name != "weather_code"},
-                            "weather_code": str(int(weather["weather_code"])),
-                            "weather_missing": float(weather["weather_missing"]),
-                        }
-                    )
+            predictions_input = [
+                {
+                    "forecast_hour": forecast_time.strftime("%Y-%m-%dT%H"),
+                    "pickup_zone": str(zone),
+                    "pickup_hour": forecast_time.hour,
+                    "pickup_dow": (forecast_time.weekday() + 1) % 7,
+                }
+                for forecast_time in forecast_hours
+                for zone in zones
+            ]
             scored = (
                 serving_model.transform(serving_spark.createDataFrame(predictions_input, input_schema))
-                .select("weather_hour", "pickup_zone", "pickup_hour", "pickup_dow", "predicted_hotspot_score")
+                .select("forecast_hour", "pickup_zone", "pickup_hour", "pickup_dow", "predicted_hotspot_score")
                 .collect()
             )
             by_hour = {item.strftime("%Y-%m-%dT%H"): [] for item in forecast_hours}
@@ -312,7 +276,7 @@ def upcoming_hotspots():
                 else:
                     mean, stddev, sample_count = 0.0, 0.0, int((baseline or {}).get("count", 0))
                     threshold = 100.0
-                by_hour[row.weather_hour].append(
+                by_hour[row.forecast_hour].append(
                     {
                         "zone": row.pickup_zone,
                         "hotspot_score": round(score, 2),
@@ -324,25 +288,23 @@ def upcoming_hotspots():
                         "historical_baseline_samples": sample_count,
                     }
                 )
-            forecasts = []
-            for forecast_time in forecast_hours:
-                hour_key = forecast_time.strftime("%Y-%m-%dT%H")
-                forecasts.append(
-                    {
-                        "hour": forecast_time.hour,
-                        "label": forecast_time.strftime("%Y-%m-%d %H:00"),
-                        "weather": weather_by_hour[hour_key],
-                        "zones": sorted(by_hour[hour_key], key=lambda row: row["hotspot_score"], reverse=True),
-                    }
-                )
+            forecasts = [
+                {
+                    "hour": forecast_time.hour,
+                    "label": forecast_time.strftime("%Y-%m-%d %H:00"),
+                    "zones": sorted(
+                        by_hour[forecast_time.strftime("%Y-%m-%dT%H")],
+                        key=lambda row: row["hotspot_score"],
+                        reverse=True,
+                    ),
+                }
+                for forecast_time in forecast_hours
+            ]
             payload = {
                 "available": True,
-                "weather_available": weather_available,
-                "message": weather_message,
-                "model": (serving_metrics or {}).get("model", "GBTRegressor"),
-                "weather_used_by_model": bool((serving_metrics or {}).get("weather_selected_by_temporal_holdout", False)),
-                "generated_at": datetime.now(ZoneInfo(TIMEZONE)).isoformat(timespec="seconds"),
-                "timezone": TIMEZONE,
+                "model": "GBTRegressor (zone/hour/weekday)",
+                "generated_at": datetime.now(ZoneInfo(APP_TIMEZONE)).isoformat(timespec="seconds"),
+                "timezone": APP_TIMEZONE,
                 "requested_hours": hours,
                 "forecasts": forecasts,
             }
@@ -351,36 +313,6 @@ def upcoming_hotspots():
         except Exception as error:
             app.logger.exception("Future hotspot forecast failed")
             return jsonify({"available": False, "message": str(error)[:200], "forecasts": []}), 503
-
-
-@app.get("/api/weather")
-def current_weather():
-    try:
-        forecast = get_forecast()
-    except Exception as error:
-        return jsonify({"available": False, "message": str(error)[:200], "hours": []})
-    local_now = datetime.now(ZoneInfo(TIMEZONE)).replace(minute=0, second=0, microsecond=0)
-    periods = []
-    for offset in range(4):
-        period = local_now + timedelta(hours=offset)
-        hour_key = period.strftime("%Y-%m-%dT%H")
-        values = weather_values_for_hour(hour_key, forecast, weather_medians)
-        periods.append(
-            {
-                **values,
-                "description": weather_description(values.get("weather_code")),
-                "label": "Hiện tại · " + period.strftime("%H:%M") if offset == 0 else period.strftime("%H:%M"),
-            }
-        )
-    return jsonify(
-        {
-            "available": True,
-            "timezone": TIMEZONE,
-            "generated_at": datetime.now(ZoneInfo(TIMEZONE)).isoformat(timespec="seconds"),
-            "hours": periods,
-        }
-    )
-
 
 @app.get("/api/dashboard")
 def dashboard_data():

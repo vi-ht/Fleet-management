@@ -12,9 +12,9 @@
 | Phạm vi: GBT dự báo “số lượng nhu cầu” | Target là điểm hotspot tương đối 0–100, không phải trip count | Ghi rõ score tương đối; không gọi là số cuốc, xác suất khách hoặc nhu cầu live |
 | Batch pipeline: “Noise Filtering”, “Spatial Outlier Removal”, “lọc nhiễu GPS” | Không được thực hiện/chứng minh trong pipeline TLC hiện tại | Thay bằng chuẩn hóa thời gian/zone, lọc bản ghi theo điều kiện dữ liệu, aggregate pickup theo zone/ngày/giờ/thứ; chỉ giữ bước đã có trong source |
 | Machine Learning: “KMeans Demand Clustering” và metrics cũ | KMeans đã bỏ; metric cũ không khớp model artifact/evidence mới | Xóa KMeans; dùng GBTRegressor và metric temporal holdout mới |
-| Chỉ số: R² 0,75; MAE 2.197; RMSE 5.377; Recall 0,85; 32.149 mẫu | Các con số này thuộc kết quả cũ/không đối chiếu được với snapshot hiện tại | Thay bằng bộ 639.393 train / 128.644 test, R² 0,658; MAE 7,366 điểm; RMSE 11,044 điểm; Precision 88,39%; Recall 30,88% |
+| Chỉ số cũ trong deck | Các con số không khớp lần train mới | Thay bằng 635.798 train / 132.249 test, R² 0,655; MAE 7,348 điểm; RMSE 11,066 điểm; Precision 88,03%; Recall 30,79% |
 | Ví dụ anomaly theo “10 phút”, Mean/StdDev chuyến và prediction trips | Threshold hiện dựa trên daily relative score theo zone/hour/day-of-week, không phải cuốc/10 phút | Ghi baseline mean + 3σ trên training score cùng zone/hour/weekday, tối thiểu 5 mẫu, cap 100; alert là cờ thống kê, không kết luận nguyên nhân |
-| Weather/feature list | Weather đã được thử nhưng không được chọn làm model deploy | Nêu Open-Meteo làm candidate tại một điểm đại diện NYC; candidate không cải thiện holdout nên weather chỉ hiển thị làm ngữ cảnh |
+| Feature list | Model dự báo relative hotspot score từ zone, giờ và thứ | Chỉ liệt kê ba đặc trưng lịch |
 | Streaming: “Live Trips”, “Instant”, “Fare / Time Estimation”, “Dynamic Fleet Metrics” | Đây là replay/simulation; ước tính cước/thời gian chuyến không nằm trong pipeline dự báo | Đổi thành historical replay theo simulation clock, micro-batch scoring, lưu MongoDB; xóa fare/time estimation, gọi dữ liệu xe là mô phỏng |
 | Kết luận: “triển khai thành công kiến trúc Lambda trên hạ tầng phân tán”, “dự báo chính xác” | Phóng đại phạm vi triển khai và metric; recall thấp | Nêu prototype local chạy batch + replay streaming; báo R²/MAE/RMSE/Precision/Recall và giới hạn bắt hotspot |
 | Hướng phát triển: “phát triển hệ thống định tuyến” | Mô phỏng xe hiện đã chạy dọc tuyến đường OSRM; thiếu điều phối xe thật/GPS thật | Nêu OSRM/OSM chỉ dùng tuyến mô phỏng; phát triển tiếp là dữ liệu fleet live, tối ưu phân xe và đánh giá ngoài mẫu |
@@ -24,7 +24,7 @@
 
 - Số liệu model và định nghĩa score/threshold: `output/evidence/model_metrics.json`.
 - Quy mô dataset, HDFS, Spark, MongoDB, runtime: `output/evidence/runtime_metrics.json` và `output/evidence/verification_summary.json`.
-- Pipeline, nguồn TLC/Open-Meteo/OSRM, giới hạn triển khai: `README.md`.
+- Pipeline, nguồn TLC/OSRM, giới hạn triển khai: `README.md`.
 - Bản báo cáo nộp: `output/documents/BDA501_Final_Project_Report_Submission.docx`.
 
 Deck cần được kiểm tra lại trực quan sau khi thay nội dung để đảm bảo chart, sơ đồ, nhãn trục, speaker notes, ngày tháng và số liệu ở mọi trang đều khớp. File này không thay thế việc cập nhật và QA bản Canva.
@@ -76,12 +76,9 @@ Vẽ hai nhãn rõ ràng: **Đã chạy local** và **Thiết kế mở rộng**
 
 Confusion counts: TP 2.314; FP 304; FN 5.180. Xóa metric cũ trong deck (R² 0,75, MAE 2.197, RMSE 5.377, Precision 0,75, Recall 0,85; 32.149 mẫu), vì chúng không khớp lần train hiện tại.
 
-### Weather và ngưỡng cảnh báo
+### Ngưỡng cảnh báo
 
-- Weather candidate dùng Open-Meteo Historical Forecast tại proxy trung tâm NYC (40.7128, −74.0060); coverage đủ điều kiện 768.037/768.037 dòng.
-- Candidate đạt MAE 7,366, RMSE 11,047, R² 0,657; không được chọn vì không cải thiện baseline calendar. Weather hiển thị trong dashboard làm bối cảnh và chưa đổi score.
 - Alert threshold: mean + 3 × population standard deviation theo zone/hour/day-of-week, tối thiểu 5 mẫu train, cap 100. Cờ cảnh báo là tín hiệu thống kê, không xác định nguyên nhân sự kiện bất thường.
-- Ghi attribution Open-Meteo và chỉ dùng free API cho mục đích phi thương mại.
 
 ### Streaming, NoSQL và giao diện
 
@@ -99,4 +96,4 @@ Deck đang ghi Group 6 / MSA33HCM, tên thành viên/role, ngày trình bày 20-
 - Báo cáo: `output/documents/BDA501_Final_Project_Report.docx`
 - Metric: `data/results/model_metrics.json`
 - README: `README.md`
-- Screenshots: `output/playwright/weather-model-dashboard-2026-10-04.png`, `weather-model-map-2026-10-04.png`, `weather-model-mobile-2026-10-04.png`
+- Screenshots: `output/playwright/dashboard-calendar-only-2026-10-04.png`, `map-calendar-only-2026-10-04.png`, `mobile-calendar-only-2026-10-04.png`

@@ -2,132 +2,132 @@
     "hotspots":  [
                      {
                          "hotspot_level":  "Nóng",
-                         "hotspot_score":  64.32,
-                         "sample_count":  10322,
+                         "hotspot_score":  64.81,
+                         "sample_count":  13476,
                          "zone":  "132"
                      },
                      {
                          "hotspot_level":  "Nóng",
-                         "hotspot_score":  58.67,
-                         "sample_count":  16040,
+                         "hotspot_score":  57.86,
+                         "sample_count":  21057,
                          "zone":  "237"
                      },
                      {
                          "hotspot_level":  "Nóng",
-                         "hotspot_score":  55.4,
-                         "sample_count":  15359,
+                         "hotspot_score":  54.99,
+                         "sample_count":  20163,
                          "zone":  "161"
                      },
                      {
                          "hotspot_level":  "Nóng",
-                         "hotspot_score":  54.43,
-                         "sample_count":  7120,
+                         "hotspot_score":  53.68,
+                         "sample_count":  9348,
                          "zone":  "236"
                      },
                      {
                          "hotspot_level":  "Trung bình",
-                         "hotspot_score":  46.59,
-                         "sample_count":  8792,
+                         "hotspot_score":  46.08,
+                         "sample_count":  11543,
                          "zone":  "186"
                      },
                      {
                          "hotspot_level":  "Trung bình",
-                         "hotspot_score":  32.67,
-                         "sample_count":  147,
+                         "hotspot_score":  33.55,
+                         "sample_count":  195,
                          "zone":  "230"
                      },
                      {
                          "hotspot_level":  "Trung bình",
-                         "hotspot_score":  29.77,
-                         "sample_count":  21264,
+                         "hotspot_score":  29.83,
+                         "sample_count":  27934,
                          "zone":  "79"
                      },
                      {
                          "hotspot_level":  "Trung bình",
-                         "hotspot_score":  29.4,
-                         "sample_count":  9247,
-                         "zone":  "162"
-                     },
-                     {
-                         "hotspot_level":  "Trung bình",
-                         "hotspot_score":  28.82,
-                         "sample_count":  18573,
+                         "hotspot_score":  29.14,
+                         "sample_count":  24359,
                          "zone":  "142"
                      },
                      {
                          "hotspot_level":  "Trung bình",
-                         "hotspot_score":  26.93,
-                         "sample_count":  14768,
+                         "hotspot_score":  28.79,
+                         "sample_count":  12141,
+                         "zone":  "162"
+                     },
+                     {
+                         "hotspot_level":  "Trung bình",
+                         "hotspot_score":  27.12,
+                         "sample_count":  19390,
                          "zone":  "239"
                      }
                  ],
     "recommendations":  [
                             {
-                                "from_zone":  "21",
-                                "hotspot_score":  64.32,
+                                "from_zone":  "149",
+                                "hotspot_score":  64.81,
                                 "reason":  "Được xếp hạng theo score trung bình của replay",
                                 "target_zone":  "132",
-                                "vehicle_id":  "NYC-TAXI-002"
+                                "vehicle_id":  "NYC-TAXI-001"
                             },
                             {
-                                "from_zone":  "38",
-                                "hotspot_score":  58.67,
+                                "from_zone":  "177",
+                                "hotspot_score":  57.86,
                                 "reason":  "Được xếp hạng theo score trung bình của replay",
                                 "target_zone":  "237",
                                 "vehicle_id":  "NYC-TAXI-003"
                             },
                             {
-                                "from_zone":  "55",
-                                "hotspot_score":  55.4,
+                                "from_zone":  "206",
+                                "hotspot_score":  54.99,
                                 "reason":  "Được xếp hạng theo score trung bình của replay",
                                 "target_zone":  "161",
                                 "vehicle_id":  "NYC-TAXI-004"
                             },
                             {
-                                "from_zone":  "89",
-                                "hotspot_score":  54.43,
+                                "from_zone":  "78",
+                                "hotspot_score":  53.68,
                                 "reason":  "Được xếp hạng theo score trung bình của replay",
                                 "target_zone":  "236",
-                                "vehicle_id":  "NYC-TAXI-006"
-                            },
-                            {
-                                "from_zone":  "106",
-                                "hotspot_score":  46.59,
-                                "reason":  "Được xếp hạng theo score trung bình của replay",
-                                "target_zone":  "186",
                                 "vehicle_id":  "NYC-TAXI-007"
                             },
                             {
-                                "from_zone":  "123",
-                                "hotspot_score":  32.67,
+                                "from_zone":  "52",
+                                "hotspot_score":  46.08,
                                 "reason":  "Được xếp hạng theo score trung bình của replay",
-                                "target_zone":  "230",
+                                "target_zone":  "186",
                                 "vehicle_id":  "NYC-TAXI-008"
                             },
                             {
-                                "from_zone":  "157",
-                                "hotspot_score":  29.77,
+                                "from_zone":  "121",
+                                "hotspot_score":  33.55,
                                 "reason":  "Được xếp hạng theo score trung bình của replay",
-                                "target_zone":  "79",
-                                "vehicle_id":  "NYC-TAXI-010"
+                                "target_zone":  "230",
+                                "vehicle_id":  "NYC-TAXI-009"
                             },
                             {
-                                "from_zone":  "174",
-                                "hotspot_score":  29.4,
+                                "from_zone":  "94",
+                                "hotspot_score":  29.83,
                                 "reason":  "Được xếp hạng theo score trung bình của replay",
-                                "target_zone":  "162",
+                                "target_zone":  "79",
                                 "vehicle_id":  "NYC-TAXI-011"
                             },
                             {
-                                "from_zone":  "191",
-                                "hotspot_score":  28.82,
+                                "from_zone":  "208",
+                                "hotspot_score":  29.14,
                                 "reason":  "Được xếp hạng theo score trung bình của replay",
                                 "target_zone":  "142",
                                 "vehicle_id":  "NYC-TAXI-012"
                             },
                             {
-                                "from_zone":  "225",
-                                "hotspot_score":  26.93,
+                                "from_zone":  "12",
+                                "hotspot_score":  28.79,
+                                "reason":  "Được xếp hạng theo score trung bình của replay",
+                                "target_zone":  "162",
+                                "vehicle_id":  "NYC-TAXI-013"
+                            },
+                            {
+                                "from_zone":  "16",
+                                "hotspot_score":  27.12,
                                 "reason":  "Được xếp hạng theo score trung bình của replay",
                                 "target_zone":  "239",
                                 "vehicle_id":  "NYC-TAXI-014"

@@ -1,19 +1,14 @@
 <!doctype html><html lang='vi'><meta charset='utf-8'><meta name='viewport' content='width=device-width'><title>Runtime evidence | 04/10/2026</title><style>body{margin:0;background:#0b1220;color:#e6edf7;font:14px 'Segoe UI',Arial,sans-serif;padding:28px}main{max-width:1050px;margin:auto}h1{font-size:26px}p,small,footer{color:#aab9d0}.grid{display:grid;grid-template-columns:1fr 1fr;gap:14px}section{background:#131f33;border:1px solid #293b56;border-radius:12px;padding:18px}h2{font-size:17px;margin:0 0 5px}pre{white-space:pre-wrap;background:#080e19;padding:13px;border-radius:8px;color:#cce2ff;line-height:1.55}footer{margin-top:16px}@media(max-width:700px){.grid{grid-template-columns:1fr}}</style><main><h1>Runtime verification evidence</h1><p>Values transcribed from project logs, metrics and API snapshots | 04/10/2026</p><div class='grid'><section><h2>Hadoop Streaming | LocalJobRunner</h2><small>Source: data/results/hadoop_streaming.log</small><pre>Reduce output records=6155
-Shuffled Maps =2
-Failed Shuffles=0
 Map input records=26116976
 Map output records=26116976
 Combine input records=26167760
 Combine output records=62883
 Reduce output records=6155
-Shuffled Maps =2
-Failed Shuffles=0
 [PASS] Validated 6155 aggregated zone-hour rows against the independent Counter baseline
-[PASS] LocalJobRunner input_rows=26116976</pre></section><section><h2>Temporal holdout | GBTRegressor</h2><small>Source: data/results/model_metrics.json</small><pre>train=639,393 rows / 175 days (2024-12-31..2026-06-21)
-test=128,644 rows / 44 days (2026-06-22..2026-08-05)
-MAE=7.366 | RMSE=11.044 | R2=0.658
-hotspot &gt;=50: Precision=88.39% | Recall=30.88%
-weather candidate selected=False</pre></section><section><h2>Dashboard and API | replay snapshot</h2><small>Source: evidence/runtime_capture_2026-10-04.json</small><pre>health=HTTP 200 | predictions=357,645 | zones=121
-weather API available=True | horizons=3
-fleet vehicles=40 | moved=True | capture=2026-10-03T18:28:49.157Z</pre></section><section><h2>Spark partition experiment | local sample</h2><small>Source: data/results/performance_benchmark.json</small><pre>input=100,000 rows | output groups=13,725 | outputs identical=True
+[PASS] LocalJobRunner input_rows=26116976</pre></section><section><h2>Temporal holdout | GBTRegressor</h2><small>Source: data/results/model_metrics.json</small><pre>train=635,798 rows / 178 days (2001-01-01..2026-06-20)
+test=132,249 rows / 45 days (2026-06-21..2026-08-05)
+MAE=7.348 | RMSE=11.066 | R2=0.655
+score &gt;=50: Precision=88.03% | Recall=30.79%</pre></section><section><h2>Dashboard and API | replay snapshot</h2><small>Source: evidence/runtime_metrics.json</small><pre>health=HTTP 200 | predictions=508,519 | zones=121
+forecast horizons=3 | fleet vehicles=40 | moved=True
+captured=2026-10-04T10:07:27.9979730+07:00</pre></section><section><h2>Spark partition experiment | local sample</h2><small>Source: data/results/performance_benchmark.json</small><pre>input=100,000 rows | output groups=13,725 | outputs identical=True
 shuffle partitions 4 median=0.272s | 16 median=0.238s</pre></section></div><footer>Hadoop output matches an independent Counter baseline. LocalJobRunner and sample-scale timing do not represent cluster-scale performance.</footer></main></html>

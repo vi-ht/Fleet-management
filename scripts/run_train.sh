@@ -7,12 +7,12 @@ from pathlib import Path
 p=Path('/data/results/model_metrics.json')
 try:
     m=json.loads(p.read_text())
-    raise SystemExit(0 if m.get('weather_source') == 'Open-Meteo Historical Forecast API' and m.get('weather_coverage') is not None else 1)
+    raise SystemExit(0 if m.get('features') == ['pickup_zone', 'pickup_hour', 'pickup_dow'] else 1)
 except Exception:
     raise SystemExit(1)
 PY
 then
-  echo "[PASS] Weather-aware model, anomaly baseline, and holdout metrics already exist; training skipped"
+  echo "[PASS] Calendar-only model, anomaly baseline, and holdout metrics already exist; training skipped"
   exit 0
 fi
 

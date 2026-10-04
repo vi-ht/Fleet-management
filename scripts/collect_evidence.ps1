@@ -22,12 +22,20 @@ if ($LASTEXITCODE -ne 0) { throw "Spark data profile failed with exit code $LAST
 
 $health = Invoke-RestMethod "http://localhost:8088/health"
 Save-Json "dashboard_health.json" $health
+$dashboardHtml = (Invoke-WebRequest "http://localhost:8088/" -UseBasicParsing).Content
+try {
+    $weatherEndpoint = Invoke-WebRequest "http://localhost:8088/api/weather" -UseBasicParsing
+    $weatherStatusCode = $weatherEndpoint.StatusCode
+} catch {
+    $weatherStatusCode = [int]$_.Exception.Response.StatusCode
+}
 $dashboard = Invoke-RestMethod "http://localhost:8088/api/dashboard"
 Save-Json "dashboard_snapshot.json" $dashboard
 $dispatch = Invoke-RestMethod "http://localhost:8088/api/dispatch"
 Save-Json "dispatch_hotspots.json" $dispatch
 $hotspots = Invoke-RestMethod "http://localhost:8088/api/upcoming-hotspots?hours=3"
 Save-Json "upcoming_hotspots.json" $hotspots
+$upcomingJson = $hotspots | ConvertTo-Json -Depth 12
 
 $vehiclesBefore = Invoke-RestMethod "http://localhost:8088/api/vehicles"
 Save-Json "vehicles_before.json" $vehiclesBefore
@@ -75,11 +83,12 @@ $mongoCount = docker exec taxi-demand-mongodb-1 mongosh --quiet --eval "db.getSi
 $pass = [ordered]@{
     collected_at = (Get-Date).ToString("o")
     dashboard_health = ($health.status -eq "ok")
+    legacy_weather_endpoint_removed = ($weatherStatusCode -eq 404)
+    dashboard_has_no_weather_content = ($dashboardHtml -notmatch "(?i)weather|open-meteo|thời tiết")
+    forecast_has_no_weather_fields = ($upcomingJson -notmatch "(?i)weather|open-meteo|thời tiết")
     hotspot_records = ([int]$dashboard.summary.count -gt 0)
     hotspot_explanations = (@($dispatch.hotspots).Count -gt 0 -and @($dispatch.hotspots | Where-Object { [int]$_.sample_count -le 0 }).Count -eq 0)
     upcoming_hotspots = (@($hotspots.forecasts).Count -eq 3)
-    open_meteo_forecast = [bool]$hotspots.weather_available
-    weather_model_selected = [bool]$hotspots.weather_used_by_model
     fleet_records = ($vehiclesAfter.count -ge 40)
     fleet_moved = [bool]$movement.changed
     model_artifact = [bool]$modelEvidence.exists
