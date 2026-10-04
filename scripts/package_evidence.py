@@ -44,6 +44,7 @@ SOURCES = (
 HASHED_ARTIFACTS = (
     "output/playwright/dashboard-calendar-only-2026-10-04.png",
     "output/playwright/map-calendar-only-2026-10-04.png",
+    "output/playwright/map-hover-vehicle-need-2026-10-04.png",
     "output/playwright/mobile-calendar-only-2026-10-04.png",
     "output/playwright/console-log-evidence-2026-10-04.png",
     "output/playwright/browser-qa-375.png",

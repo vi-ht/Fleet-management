@@ -54,8 +54,22 @@
     "output/playwright/browser-qa-1440.png",
     "output/playwright/dashboard-calendar-only-2026-10-04.png",
     "output/playwright/map-calendar-only-2026-10-04.png",
-    "output/playwright/mobile-calendar-only-2026-10-04.png"
+    "output/playwright/mobile-calendar-only-2026-10-04.png",
+    "output/playwright/map-hover-vehicle-need-2026-10-04.png"
   ],
+  "map_hover": {
+    "result": "pass",
+    "zones_with_tooltip": 263,
+    "vehicle_snapshots": 40,
+    "sample_zone": "1 · Newark Airport",
+    "forecast_score": 5.8,
+    "estimated_target_vehicles": 1,
+    "available_at_zone": 0,
+    "dispatched_vehicles_en_route": [],
+    "estimated_additional_vehicles": 1,
+    "formula": "max(0, ceil(hotspot_score / 25) - available_at_zone - dispatched_en_route)",
+    "live_dispatch_command_sent_during_review": false
+  },
   "accessibility": {
     "manual_snapshot_review": "navigation, controls and map region expose names/roles",
     "axe_scan": "not run"

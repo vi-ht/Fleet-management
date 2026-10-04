@@ -81,6 +81,8 @@ Dashboard chỉ đưa ra danh sách xe rảnh và các zone nóng để tham kh�
 
 Đây là human-in-the-loop cho **xe mô phỏng**, không điều khiển taxi ngoài dự án. Toàn bộ lệnh được ghi lại để truy vết; nếu simulator chưa chạy, lệnh vẫn ở trạng thái `approved` chờ producer nhận.
 
+Trên bản đồ, hover vào một Taxi Zone để xem xe rảnh đang ở đó, các xe có lệnh đã duyệt và trạng thái `en_route` đang tới đó, cùng mã xe. Tooltip cũng hiển thị số xe mục tiêu ước tính theo quy tắc demo `ceil(hotspot_score / 25)` và số xe cần điều thêm sau khi trừ xe rảnh tại zone và xe điều phối đang tới. Đây là heuristic giao diện dựa trên relative score 0–100; model không dự báo số lượng xe cần. Người điều phối vẫn tự chọn xe/đích và duyệt lệnh.
+
 Batch cũng bỏ qua MapReduce/ETL nếu artifact đã có. Khi thay bộ Parquet nguồn, chạy lại có chủ đích:
 
 ```bash
@@ -107,6 +109,7 @@ Tham khảo cấu trúc cột tại [Yellow Taxi Data Dictionary](https://www.ny
 
 - Dashboard calendar-only, polygon Taxi Zone, và các nút duyệt điều phối thủ công: [`output/playwright/dashboard-calendar-only-2026-10-04.png`](output/playwright/dashboard-calendar-only-2026-10-04.png).
 - Bản đồ score theo giờ, xe mô phỏng và polygon Taxi Zone: [`output/playwright/map-calendar-only-2026-10-04.png`](output/playwright/map-calendar-only-2026-10-04.png).
+- Tooltip khi hover zone, gồm score, xe rảnh tại chỗ, mã xe điều phối đang tới và số xe cần điều thêm ước tính: [`output/playwright/map-hover-vehicle-need-2026-10-04.png`](output/playwright/map-hover-vehicle-need-2026-10-04.png).
 - Ảnh mobile 375 px: [`output/playwright/mobile-calendar-only-2026-10-04.png`](output/playwright/mobile-calendar-only-2026-10-04.png).
 - Ảnh chụp kiểm tra live ở 375/768/1440 px: [`browser-qa-375.png`](output/playwright/browser-qa-375.png), [`browser-qa-768.png`](output/playwright/browser-qa-768.png), [`browser-qa-1440.png`](output/playwright/browser-qa-1440.png); nav đã tự xuống hàng ở tablet/mobile và không tràn ngang. Kết quả API, điều hướng và filter: [`output/evidence/browser_qa_summary_2026-10-04.json`](output/evidence/browser_qa_summary_2026-10-04.json).
 - Ảnh console/runtime: [`output/playwright/console-log-evidence-2026-10-04.png`](output/playwright/console-log-evidence-2026-10-04.png). Snapshot API/fleet có trong [`output/evidence/runtime_capture_2026-10-04.json`](output/evidence/runtime_capture_2026-10-04.json) và [`output/evidence/fleet_movement_capture_2026-10-04.json`](output/evidence/fleet_movement_capture_2026-10-04.json).

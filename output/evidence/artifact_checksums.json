@@ -112,6 +112,10 @@
     "sha256": "76595252430f5ed1bc4742e3571e4cfb9a097485359470f510d2bd2ea1c93ef8"
   },
   {
+    "path": "output/playwright/map-hover-vehicle-need-2026-10-04.png",
+    "sha256": "b2ee867c65db56c36bdb9eb785752a24e577019096c9d1cf61973e0fad1bbd43"
+  },
+  {
     "path": "output/playwright/mobile-calendar-only-2026-10-04.png",
     "sha256": "a68ac720a5bd26098d48088fc5be42b2b409e9dd226bf3e41fd02ce7561e12a3"
   },
@@ -133,7 +137,7 @@
   },
   {
     "path": "output/evidence/browser_qa_summary_2026-10-04.json",
-    "sha256": "71304011651f63a1081125fe2e008e60401dbcfebd815510e16411fb42bac5ec"
+    "sha256": "aa4cbea1a72fb0770de7779afd246560b88d79c7ed55590ea1195df53c8fcbe9"
   },
   {
     "path": "output/evidence/dependency_audit.json",
