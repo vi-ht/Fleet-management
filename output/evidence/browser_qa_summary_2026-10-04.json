@@ -1,5 +1,5 @@
 {
-  "checked_at_local": "2026-10-04 10:26 Asia/Bangkok",
+  "checked_at_local": "2026-10-04 10:49 Asia/Bangkok",
   "url": "http://localhost:8088/",
   "result": "pass",
   "console": {
@@ -15,7 +15,8 @@
     "/api/dashboard?zone=": 200,
     "/api/dashboard?zone=4": 200,
     "/api/vehicles": 200,
-    "/api/dispatch": 200
+    "/api/dispatch": 200,
+    "POST /api/vehicles/NYC-TAXI-002/dispatch (invalid zone)": 400
   },
   "navigation": {
     "working_items": 4,
@@ -59,5 +60,15 @@
     "manual_snapshot_review": "navigation, controls and map region expose names/roles",
     "axe_scan": "not run"
   },
-  "visual_regression": "inconclusive; no committed reference baseline"
+  "visual_regression": "inconclusive; no committed reference baseline",
+  "human_dispatch": {
+    "recommendation_cards": 10,
+    "approval_buttons": 10,
+    "confirmation_prompt_required": true,
+    "active_commands_at_capture": 0,
+    "dispatch_command_sent_during_review": false,
+    "invalid_zone_rejected": true,
+    "active_commands_after_invalid_zone_request": 0,
+    "zones_selectable_per_vehicle": 260
+  }
 }

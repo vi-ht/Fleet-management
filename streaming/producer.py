@@ -10,11 +10,15 @@ from zoneinfo import ZoneInfo
 import requests
 from kafka import KafkaProducer
 from kafka.errors import KafkaError, NoBrokersAvailable
+from pymongo import MongoClient
 
 
 servers = os.getenv("KAFKA_BOOTSTRAP_SERVERS", "kafka:9092")
 topic = os.getenv("KAFKA_TOPIC", "taxi_trips")
 vehicle_topic = os.getenv("VEHICLE_TOPIC", "taxi_vehicles")
+mongo_client = MongoClient(os.getenv("MONGO_URI", "mongodb://mongodb:27017"))
+database = mongo_client[os.getenv("MONGO_DATABASE", "taxi")]
+dispatch_commands = database[os.getenv("MONGO_DISPATCH_COLLECTION", "vehicle_dispatch_commands")]
 delay = float(os.getenv("PRODUCER_DELAY_SECONDS", "0.25"))
 loop = os.getenv("SIMULATION_LOOP", "true").lower() == "true"
 cycle_pause = float(os.getenv("SIMULATION_CYCLE_PAUSE_SECONDS", "5"))
@@ -59,7 +63,11 @@ def initial_vehicle_state(vehicle_index):
     latitude = 40.68 + grid_row * 0.022 + (vehicle_index % 3) * 0.001
     longitude = -74.02 + grid_column * 0.025 + (vehicle_index % 3) * 0.001
     trip_number = 1
-    destination_latitude, destination_longitude = destination_for(vehicle_index, trip_number)
+    status = "occupied" if vehicle_index % 4 == 0 else "available"
+    pickup_zone = str(4 + ((vehicle_index * 17) % 260))
+    destination_latitude, destination_longitude = (
+        destination_for(vehicle_index, trip_number) if status == "occupied" else (latitude, longitude)
+    )
     return {
         "vehicle_index": vehicle_index,
         "vehicle_id": f"NYC-TAXI-{vehicle_index + 1:03d}",
@@ -70,9 +78,9 @@ def initial_vehicle_state(vehicle_index):
         "destination_latitude": destination_latitude,
         "destination_longitude": destination_longitude,
         "trip_number": trip_number,
-        "status": "occupied" if vehicle_index % 4 == 0 else "available",
-        "pickup_zone": str(4 + ((vehicle_index * 17) % 260)),
-        "dropoff_zone": str(4 + ((vehicle_index * 29 + 23) % 260)),
+        "status": status,
+        "pickup_zone": pickup_zone,
+        "dropoff_zone": str(4 + ((vehicle_index * 29 + 23) % 260)) if status == "occupied" else pickup_zone,
         "route_coordinates": [],
         "route_segment_index": 0,
         "route_segment_progress_m": 0.0,
@@ -80,10 +88,17 @@ def initial_vehicle_state(vehicle_index):
         "route_remaining_m": 0.0,
         "route_retry_at": 0.0,
         "route_error": None,
+        "dispatch_status": "idle",
+        "dispatch_command_id": None,
+        "dispatch_target_zone": None,
     }
 
 
 vehicle_states = [initial_vehicle_state(index) for index in range(vehicle_count)]
+dispatch_commands.update_many(
+    {"status": {"$in": ["routing", "en_route"]}},
+    {"$set": {"status": "approved", "recovered_at": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())}},
+)
 
 
 def source_rows():
@@ -166,6 +181,12 @@ def request_drive_route(state, now):
         state["route_remaining_m"] = state["route_distance_m"]
         state["latitude"], state["longitude"] = coordinates[0][1], coordinates[0][0]
         state["route_error"] = None
+        if state["dispatch_status"] == "routing":
+            state["dispatch_status"] = "en_route"
+            dispatch_commands.update_one(
+                {"command_id": state["dispatch_command_id"]},
+                {"$set": {"status": "en_route", "route_started_at": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())}},
+            )
         return True
     except (requests.RequestException, ValueError, KeyError, IndexError, TypeError) as error:
         clear_route(state)
@@ -174,23 +195,79 @@ def request_drive_route(state, now):
         return False
 
 
-def start_next_route(state):
-    state["trip_number"] += 1
-    state["route_start_latitude"] = state["latitude"]
-    state["route_start_longitude"] = state["longitude"]
-    state["destination_latitude"], state["destination_longitude"] = destination_for(
-        state["vehicle_index"], state["trip_number"]
-    )
-    state["status"] = "occupied" if (state["vehicle_index"] + state["trip_number"]) % 4 == 0 else "available"
-    state["pickup_zone"] = state["dropoff_zone"]
-    state["dropoff_zone"] = str(4 + ((state["vehicle_index"] * 29 + state["trip_number"] * 5) % 260))
+def complete_vehicle_route(state):
     clear_route(state)
-    state["route_retry_at"] = 0.0
-    state["route_error"] = None
+    state["speed_kmh"] = 0.0
+    if state["status"] == "occupied":
+        state["status"] = "available"
+        state["pickup_zone"] = state["dropoff_zone"]
+        state["destination_latitude"] = state["latitude"]
+        state["destination_longitude"] = state["longitude"]
+        state["dispatch_status"] = "idle"
+    else:
+        state["dispatch_status"] = "arrived"
+        state["pickup_zone"] = state["dispatch_target_zone"] or state["pickup_zone"]
+        dispatch_commands.update_one(
+            {"command_id": state["dispatch_command_id"]},
+            {"$set": {"status": "arrived", "arrived_at": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())}},
+        )
+
+
+def process_dispatch_commands():
+    states_by_id = {state["vehicle_id"]: state for state in vehicle_states}
+    while True:
+        command = dispatch_commands.find_one_and_update(
+            {"status": "approved"},
+            {"$set": {"status": "routing", "claimed_at": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())}},
+            sort=[("created_at", 1)],
+        )
+        if not command:
+            return
+        state = states_by_id.get(command.get("vehicle_id"))
+        if not state or state["status"] != "available" or state["dispatch_status"] in {"routing", "en_route"}:
+            dispatch_commands.update_one(
+                {"command_id": command["command_id"]},
+                {"$set": {"status": "rejected", "error": "Xe không còn rảnh để nhận lệnh"}},
+            )
+            continue
+        try:
+            target_latitude = float(command["target_latitude"])
+            target_longitude = float(command["target_longitude"])
+            target_zone = str(command["target_zone"])
+            if (
+                not target_zone.isdigit()
+                or not math.isfinite(target_latitude)
+                or not math.isfinite(target_longitude)
+                or not -90 <= target_latitude <= 90
+                or not -180 <= target_longitude <= 180
+            ):
+                raise ValueError("Invalid dispatch destination")
+        except (KeyError, TypeError, ValueError):
+            dispatch_commands.update_one(
+                {"command_id": command["command_id"]},
+                {"$set": {"status": "rejected", "error": "Điểm đến của lệnh điều phối không hợp lệ"}},
+            )
+            continue
+        state["route_start_latitude"] = state["latitude"]
+        state["route_start_longitude"] = state["longitude"]
+        state["destination_latitude"] = target_latitude
+        state["destination_longitude"] = target_longitude
+        state["dropoff_zone"] = target_zone
+        state["dispatch_target_zone"] = target_zone
+        state["dispatch_command_id"] = command["command_id"]
+        state["dispatch_status"] = "routing"
+        clear_route(state)
+        state["route_retry_at"] = 0.0
+        state["route_error"] = None
+        print(f"[APPROVED] {state['vehicle_id']} -> zone {state['dispatch_target_zone']}", flush=True)
 
 
 def advance_vehicle(state, elapsed_seconds):
     status = state["status"]
+    dispatch_status = state["dispatch_status"]
+    if status == "available" and dispatch_status not in {"routing", "en_route"}:
+        state["speed_kmh"] = 0.0
+        return 0.0, 0.0, 0.0, 100.0 if dispatch_status == "arrived" else 0.0
     speed_kmh = 28 + (state["vehicle_index"] * 7 + state["trip_number"]) % 24 if status == "occupied" else 14 + state["vehicle_index"] % 10
     now = time.monotonic()
     if not state["route_coordinates"] and not request_drive_route(state, now):
@@ -217,7 +294,7 @@ def advance_vehicle(state, elapsed_seconds):
         state["route_segment_progress_m"] = 0.0
         state["latitude"], state["longitude"] = coordinates[index][1], coordinates[index][0]
     if index >= len(coordinates) - 1:
-        start_next_route(state)
+        complete_vehicle_route(state)
         return 0.0, 0.0, 0.0, 100.0
 
     state["route_remaining_m"] = sum(
@@ -232,6 +309,7 @@ def advance_vehicle(state, elapsed_seconds):
 
 def send_vehicle_snapshot(cycle_number):
     global last_snapshot_at
+    process_dispatch_commands()
     now = time.monotonic()
     elapsed_seconds = 0 if last_snapshot_at is None else max(0.5, now - last_snapshot_at)
     last_snapshot_at = now
@@ -240,11 +318,25 @@ def send_vehicle_snapshot(cycle_number):
     for state in vehicle_states:
         speed_kmh, remaining_km, heading, progress = advance_vehicle(state, elapsed_seconds)
         state["speed_kmh"] = round(speed_kmh, 1)
+        if state["status"] == "occupied":
+            route_status = "Đang hoàn tất chuyến mô phỏng có khách"
+        elif state["dispatch_status"] == "routing":
+            route_status = "Đã duyệt · đang tạo tuyến đường"
+        elif state["dispatch_status"] == "en_route":
+            route_status = f"Đang tới zone {state['dispatch_target_zone']} · đã được duyệt"
+        elif state["dispatch_status"] == "arrived":
+            route_status = f"Đã tới zone {state['dispatch_target_zone']} theo lệnh điều phối"
+        elif state["route_error"]:
+            route_status = "Đang chờ thử lại tuyến đường"
+        else:
+            route_status = "Rảnh · chờ người điều phối"
         events.append(
             {
                 "vehicle_id": state["vehicle_id"],
                 "status": state["status"],
-                "route_status": ("Chưa lấy được tuyến đường" if state["route_error"] else "Đang chờ tuyến đường") if not state["route_coordinates"] else ("Đang chở khách" if state["status"] == "occupied" else "Đang tái bố trí tới điểm nóng"),
+                "route_status": route_status,
+                "dispatch_status": state["dispatch_status"],
+                "dispatch_command_id": state["dispatch_command_id"],
                 "pickup_zone": state["pickup_zone"],
                 "dropoff_zone": state["dropoff_zone"],
                 "latitude": round(state["latitude"], 6),

@@ -266,6 +266,9 @@ services:
       KAFKA_BOOTSTRAP_SERVERS: kafka:9092
       KAFKA_TOPIC: taxi_trips_realtime_v2
       VEHICLE_TOPIC: taxi_vehicles
+      MONGO_URI: mongodb://mongodb:27017
+      MONGO_DATABASE: taxi
+      MONGO_DISPATCH_COLLECTION: vehicle_dispatch_commands
       RAW_DATA_PATH: /workspace/Nyc taxi trip record/Nyc taxi trip record
       PRODUCER_DELAY_SECONDS: ${PRODUCER_DELAY_SECONDS:-0.20}
       SIMULATION_LOOP: ${SIMULATION_LOOP:-true}
@@ -287,6 +290,8 @@ services:
         condition: service_completed_successfully
       kafka-topic-init:
         condition: service_completed_successfully
+      mongodb:
+        condition: service_healthy
 
   streaming-predictor:
     build:
@@ -347,6 +352,7 @@ services:
       MONGO_DATABASE: taxi
       MONGO_COLLECTION: hotspot_predictions
       MONGO_VEHICLE_COLLECTION: vehicle_status
+      MONGO_DISPATCH_COLLECTION: vehicle_dispatch_commands
       SPARK_HOME: /opt/spark
       HADOOP_CONF_DIR: /opt/spark/conf/hadoop
       PYTHONPATH: /opt/spark/python:/opt/spark/python/lib/py4j-0.10.9.7-src.zip:/workspace

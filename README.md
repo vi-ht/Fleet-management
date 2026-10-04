@@ -43,6 +43,8 @@ flowchart LR
   FLEET[Simulated fleet + OSRM routes] --> KVEH[Kafka vehicle topic]
   KVEH --> TRACK[Fleet tracker]
   TRACK --> VEH[(MongoDB vehicle_status)]
+  UI -->|Human-approved dispatch| DC[(MongoDB vehicle_dispatch_commands)]
+  DC --> FLEET
   MONGO --> UI[Dashboard / API / map]
   VEH --> UI
 
@@ -73,6 +75,12 @@ Lần train calendar-only ngày 04/10/2026 có 635.798 dòng train trên 178 ng�
 
 **Hướng cải thiện cần đánh giá tiếp:** không nên gọi R² là “độ chính xác”, vì R² không phải accuracy. Có thể thử lag demand theo zone (ví dụ 1 giờ và 24 giờ trước) và lịch ngày lễ/sự kiện NYC. Tạo đặc trưng chỉ từ thời điểm dự báo trở về trước, dùng cùng temporal holdout hoặc rolling-origin backtest, và báo MAE/RMSE/R² cùng Precision/Recall hoặc Recall@top-k tại cùng ngân sách điều phối. Chỉ thay model đang deploy nếu kết quả ngoài mẫu cải thiện và đặc trưng mới có thể tạo đồng nhất ở batch lẫn serving.
 
+## Điều phối xe có người duyệt
+
+Dashboard chỉ đưa ra danh sách xe rảnh và các zone nóng để tham khảo. Người vận hành chọn điểm đến rồi bấm **Duyệt điều xe**; API ghi lệnh vào MongoDB `taxi.vehicle_dispatch_commands`, producer nhận lệnh và chỉ khi đó mới gọi OSRM tạo tuyến đường lái xe. Lệnh có trạng thái `approved`, `routing`, `en_route`, `arrived` hoặc `rejected` để dashboard theo dõi. Xe rảnh đứng yên nếu chưa có lệnh được duyệt; sau khi tới đích, xe tiếp tục chờ người điều phối. Các chuyến mô phỏng đang có khách vẫn tự chạy tới điểm trả khách và kết thúc ở đó.
+
+Đây là human-in-the-loop cho **xe mô phỏng**, không điều khiển taxi ngoài dự án. Toàn bộ lệnh được ghi lại để truy vết; nếu simulator chưa chạy, lệnh vẫn ở trạng thái `approved` chờ producer nhận.
+
 Batch cũng bỏ qua MapReduce/ETL nếu artifact đã có. Khi thay bộ Parquet nguồn, chạy lại có chủ đích:
 
 ```bash
@@ -91,13 +99,13 @@ Nếu muốn reset toàn bộ dữ liệu demo, dừng stack rồi xóa các th�
 - **Fallback:** nếu không có Parquet TLC trong thư mục, batch tạo `data/raw/taxi_trips.csv` với dữ liệu deterministic tổng hợp (mặc định 10.000 dòng). Dữ liệu fallback mô phỏng schema TLC, không phải chuyến đi thật. Có thể đặt CSV của bạn tại `data/raw/taxi_trips.csv`; generator giữ nguyên file đã tồn tại. Nguồn CSV fallback này cũng được dùng cho realtime replay.
 - **Realtime replay:** producer phát tối đa `SIMULATION_SOURCE_ROWS` dòng từ cùng bộ Parquet TLC; nếu không có thì đọc CSV fallback trong `data/raw/taxi_trips.csv`. Timestamp lịch sử được thay bằng simulation clock hiện tại theo America/New_York, vì vậy đây là phát lại tăng tốc, không phải live feed.
 - **Ranh giới bản đồ:** `dashboard/static/taxi_zones.geojson` chứa 263 polygon parts ứng với 260 LocationID duy nhất (một số zone có nhiều phần rời), cùng tên zone và borough. Ranh giới là dữ liệu địa lý NYC TLC được phân phối ở dạng GeoJSON; tham chiếu bộ gốc tại [NYC Taxi Zones](https://catalog.data.gov/dataset/nyc-taxi-zones) và bản chuyển đổi được dùng để đóng gói tại [nyc-taxi-map](https://github.com/chkp-fernandom/nyc-taxi-map/blob/master/data/zones.geojson). Bản đồ chỉ tô vùng theo LocationID; không suy ra ranh giới chính xác hơn dữ liệu nguồn.
-- **Vị trí và trạng thái xe:** 40 xe, tốc độ và trạng thái do simulator tạo ra; chúng không đến từ GPS hoặc dữ liệu định vị NYC TLC. Đường đi được lấy từ OSRM trên dữ liệu đường OpenStreetMap, xe di chuyển dọc hình học tuyến lái xe. Dịch vụ định tuyến cần kết nối Internet; nếu không lấy được tuyến, xe đứng yên và thử lại, không tự đi đường thẳng. Có thể đổi endpoint bằng `ROUTING_BASE_URL`, thời gian thử lại bằng `ROUTE_RETRY_SECONDS` và giới hạn nhịp gọi bằng `ROUTE_REQUEST_INTERVAL_SECONDS`.
+- **Vị trí và trạng thái xe:** 40 xe, tốc độ và trạng thái do simulator tạo ra; chúng không đến từ GPS hoặc dữ liệu định vị NYC TLC. Xe rảnh chờ người vận hành duyệt điểm đến; sau khi duyệt, OSRM tạo tuyến trên dữ liệu đường OpenStreetMap và xe đi dọc hình học tuyến. Chuyến đang có khách được mô phỏng tự động tới điểm trả khách. Dịch vụ định tuyến cần kết nối Internet; nếu không lấy được tuyến, xe đứng yên và thử lại, không tự đi đường thẳng. Có thể đổi endpoint bằng `ROUTING_BASE_URL`, thời gian thử lại bằng `ROUTE_RETRY_SECONDS` và giới hạn nhịp gọi bằng `ROUTE_REQUEST_INTERVAL_SECONDS`.
 
 Tham khảo cấu trúc cột tại [Yellow Taxi Data Dictionary](https://www.nyc.gov/assets/tlc/downloads/pdf/data_dictionary_trip_records_yellow.pdf) và zone tại [Taxi Zone Lookup CSV](https://d37ci6vzury5cl.cloudfront.net/misc/taxi_zone_lookup.csv).
 
 ## Ảnh chụp và evidence
 
-- Dashboard calendar-only, polygon Taxi Zone và metric lần train mới: [`output/playwright/dashboard-calendar-only-2026-10-04.png`](output/playwright/dashboard-calendar-only-2026-10-04.png).
+- Dashboard calendar-only, polygon Taxi Zone, và các nút duyệt điều phối thủ công: [`output/playwright/dashboard-calendar-only-2026-10-04.png`](output/playwright/dashboard-calendar-only-2026-10-04.png).
 - Bản đồ score theo giờ, xe mô phỏng và polygon Taxi Zone: [`output/playwright/map-calendar-only-2026-10-04.png`](output/playwright/map-calendar-only-2026-10-04.png).
 - Ảnh mobile 375 px: [`output/playwright/mobile-calendar-only-2026-10-04.png`](output/playwright/mobile-calendar-only-2026-10-04.png).
 - Ảnh chụp kiểm tra live ở 375/768/1440 px: [`browser-qa-375.png`](output/playwright/browser-qa-375.png), [`browser-qa-768.png`](output/playwright/browser-qa-768.png), [`browser-qa-1440.png`](output/playwright/browser-qa-1440.png); nav đã tự xuống hàng ở tablet/mobile và không tràn ngang. Kết quả API, điều hướng và filter: [`output/evidence/browser_qa_summary_2026-10-04.json`](output/evidence/browser_qa_summary_2026-10-04.json).
@@ -120,11 +128,11 @@ Feature engineering mặc định được thực hiện trong `spark/train_mode
 
 Batch ưu tiên dùng các file NYC TLC Parquet đặt tại `Nyc taxi trip record/Nyc taxi trip record`: bước chuẩn bị tạo TSV pickup-zone/hour và Counter baseline độc lập; HDFS lưu raw Parquet cùng TSV; Hadoop Streaming thực thi mapper/combiner/reducer bằng LocalJobRunner; Spark ETL đọc Parquet, nối zone lookup và tạo curated dataset. Nếu thư mục không có, pipeline tự fallback về CSV mô phỏng deterministic. Producer lấy tối đa `SIMULATION_SOURCE_ROWS` bản ghi từ cùng nguồn Parquet để phát sự kiện realtime; ngoài hotspot event, producer còn phát snapshot 40 xe vào topic `taxi_vehicles`, `fleet-tracker` đọc topic này và lưu trạng thái hiện tại vào collection `taxi.vehicle_status` để dashboard hiển thị bản đồ và danh sách xe.
 
-Dashboard tiếng Việt tại `http://localhost:8088/` có filter pickup zone, bản đồ OpenStreetMap với polygon taxi zone thật, màu score dự báo theo giờ có thể chọn, marker xe mô phỏng, ranking replay, gợi ý điều phối minh họa và forecast hotspot 3 giờ kế tiếp. Marker được nội suy giữa các snapshot Kafka; producer chạy lặp liên tục và dừng bằng `docker compose stop kafka-producer`.
+Dashboard tiếng Việt tại `http://localhost:8088/` có filter pickup zone, bản đồ OpenStreetMap với polygon taxi zone thật, màu score dự báo theo giờ có thể chọn, marker xe mô phỏng, ranking replay, đề xuất điều phối cần người duyệt và forecast hotspot 3 giờ kế tiếp. Marker được nội suy giữa các snapshot Kafka; xe rảnh chờ điều phối, còn xe đang có khách tự hoàn tất chuyến mô phỏng. Producer chạy lặp liên tục và dừng bằng `docker compose stop kafka-producer`.
 
 **Vì sao một zone nóng:** batch đếm chuyến đón theo zone, ngày, giờ và thứ trong tuần. Score = (số chuyến zone ÷ số chuyến cao nhất giữa các zone trong cùng ngày/giờ/thứ) × 100. GBTRegressor dự báo score tương đối từ zone, giờ, thứ; không dùng KMeans. Streaming chấm sự kiện replay; map forecast chấm từng LocationID cho giờ tương lai. Điểm hotspot không phải số chuyến thực tế hay nhu cầu live.
 
-Producer dùng simulation clock theo America/New_York, phát event tăng tốc theo `SIMULATION_EVENT_TIME_STEP_SECONDS`. Snapshot đội xe phát định kỳ; xe có tọa độ đích, hướng, tốc độ, tiến độ và ETA. Tuyến gọi OSRM Route API với hồ sơ `driving`; tọa độ điểm đi/đến được OSRM snap vào mạng đường gần nhất. Đây là mô phỏng realtime tăng tốc, không phải GPS xe thật. Polygon bản đồ dựa trên bộ ranh giới NYC TLC Taxi Zone; màu theo score forecast của từng LocationID cho giờ được chọn.
+Producer dùng simulation clock theo America/New_York, phát event tăng tốc theo `SIMULATION_EVENT_TIME_STEP_SECONDS`. Snapshot đội xe phát định kỳ; xe có tọa độ đích, hướng, tốc độ, tiến độ và ETA. Xe rảnh không tự chọn đích: người điều phối chọn zone và xác nhận; lệnh được lưu trong MongoDB rồi producer lấy để gọi OSRM Route API với hồ sơ `driving`. Tọa độ điểm đi/đến được OSRM snap vào mạng đường gần nhất. Đây là mô phỏng realtime tăng tốc, không phải GPS xe thật. Polygon bản đồ dựa trên bộ ranh giới NYC TLC Taxi Zone; màu theo score forecast của từng LocationID cho giờ được chọn.
 
 Điều chỉnh tốc độ hoặc số event:
 

@@ -7,7 +7,7 @@
 | Phần trong deck hiện tại | Vấn đề | Nội dung cần thay |
 |---|---|---|
 | Bìa: “Hệ thống điều phối xe taxi theo thời gian thực”, năm “2030”, hai ngày trình bày khác nhau | Mô tả như dịch vụ live; deck có ngày/năm xung đột | “Prototype phân tích hotspot taxi từ dữ liệu TLC, replay lịch sử và mô phỏng đội xe”; xóa năm/ngày cũ, điền ngày được xác nhận |
-| Đặt vấn đề: “tự động điều xe … chờ sẵn” | Hệ thống không dispatch taxi thật; dashboard chỉ hỗ trợ quyết định | “Cung cấp hotspot score và gợi ý điều phối để người vận hành tham khảo” |
+| Đặt vấn đề: “tự động điều xe … chờ sẵn” | Hệ thống không dispatch taxi thật; chỉ điều xe mô phỏng sau khi người vận hành chọn đích và xác nhận | “Cung cấp hotspot score và đề xuất điều phối; lệnh cho đội xe mô phỏng cần người vận hành duyệt” |
 | Big Data/kiến trúc: “chia nhỏ … trên nhiều máy”, “độ trễ thấp” | Bản chạy dùng Docker local; Hadoop là LocalJobRunner, chưa phải cluster đa node | Nêu Hadoop Streaming LocalJobRunner một máy và Spark local/Compose; chuyển kiến trúc nhiều worker sang phần thiết kế mở rộng |
 | Phạm vi: GBT dự báo “số lượng nhu cầu” | Target là điểm hotspot tương đối 0–100, không phải trip count | Ghi rõ score tương đối; không gọi là số cuốc, xác suất khách hoặc nhu cầu live |
 | Batch pipeline: “Noise Filtering”, “Spatial Outlier Removal”, “lọc nhiễu GPS” | Không được thực hiện/chứng minh trong pipeline TLC hiện tại | Thay bằng chuẩn hóa thời gian/zone, lọc bản ghi theo điều kiện dữ liệu, aggregate pickup theo zone/ngày/giờ/thứ; chỉ giữ bước đã có trong source |

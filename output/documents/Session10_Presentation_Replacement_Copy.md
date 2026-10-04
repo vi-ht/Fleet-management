@@ -41,7 +41,7 @@ Dữ liệu chuyến đi lịch sử có thể giúp nhận diện những zone 
 ## Slide 7 — Mục tiêu
 
 **Mục tiêu:** dự báo relative hotspot score theo pickup zone, giờ và thứ trong tuần; tô màu zone có score cao trên bản đồ và đưa ra gợi ý điều phối mô phỏng.<br>
-Dashboard hỗ trợ quyết định; hệ thống không điều xe taxi thật và không nhận GPS trực tiếp.
+Người vận hành chọn xe, điểm đến và xác nhận; chỉ khi được duyệt xe mô phỏng mới nhận lệnh điều hướng. Hệ thống không điều xe taxi thật và không nhận GPS trực tiếp.
 
 ## Slide 8 — Vì sao dùng công cụ Big Data?
 
@@ -63,13 +63,14 @@ Batch tạo dữ liệu curated và model artifact; Streaming phát lại sự k
 ## Slide 11 — Phạm vi dự án
 
 **Trong phạm vi:** dữ liệu NYC TLC lịch sử; chuẩn hóa và tổng hợp dữ liệu; Spark ETL/SQL; GBTRegressor dự báo relative hotspot score 0–100; anomaly threshold; phát lại Kafka; ghi MongoDB; dashboard và xe mô phỏng chạy theo tuyến OSRM/OpenStreetMap.<br>
-**Ngoài phạm vi:** feed taxi live, GPS thật, tự động điều xe thật, dự báo số cuốc tuyệt đối, giá cước/ETA cho chuyến taxi và triển khai cloud đa node.
+**Ngoài phạm vi:** feed taxi live, GPS thật, tự động điều xe taxi thật, dự báo số cuốc tuyệt đối, giá cước/ETA cho chuyến taxi và triển khai cloud đa node.
 
 ## Slide 12 — Sơ đồ kiến trúc và pipeline
 
 Vẽ luồng đã chạy:<br>
 `NYC TLC Parquet → Hadoop Streaming / HDFS → Spark ETL + Taxi Zone Lookup → Curated Parquet → Train GBT + baseline → PipelineModel`<br>
 `Historical Replay → Kafka → Spark Structured Streaming + load PipelineModel → score/alert → MongoDB → Dashboard`<br>
+`Dashboard: người vận hành duyệt lệnh → MongoDB vehicle_dispatch_commands → producer → OSRM route → Kafka taxi_vehicles → fleet tracker → Dashboard`<br>
 Ghi rõ “local prototype”; Dashboard hiển thị điểm dự báo, bản đồ zone và fleet mô phỏng. Đánh dấu cluster nhiều worker là thiết kế tương lai.
 
 ## Slide 13 — Batch và huấn luyện model
@@ -118,8 +119,8 @@ Xóa fare/time estimation và “instant live demand”.
 ## Slide 18 — MongoDB và Dashboard
 
 **MongoDB:** lưu hotspot predictions và trạng thái xe mô phỏng để Dashboard truy vấn.<br>
-**Dashboard:** bản đồ polygon NYC Taxi Zone tô theo score; xe và gợi ý điều phối đều là mô phỏng. Tuyến xe dựa trên OSRM/OpenStreetMap; không phải vị trí GPS thật.<br>
-Đổi “Live Vehicle Dispatching” thành “Fleet simulation & decision support”.
+**Dashboard:** bản đồ polygon NYC Taxi Zone tô theo score; xe là mô phỏng. Người vận hành chọn xe/zone và duyệt lệnh; tuyến đã duyệt dựa trên OSRM/OpenStreetMap, không phải vị trí GPS thật.<br>
+Đổi “Live Vehicle Dispatching” thành “Human-approved fleet simulation”.
 
 ## Slide 19 — Phần 3
 
@@ -134,7 +135,7 @@ Vai trò kỹ thuật có thể mô tả theo các phần thực tế: ingestion
 ## Slide 21 — Kết luận và giới hạn
 
 **Kết quả:** prototype local kết hợp batch và replay streaming; xử lý snapshot TLC 26,1 triệu chuyến; GBT dự báo relative hotspot score với temporal holdout; Dashboard hiển thị zone score và fleet simulation.<br>
-**Giới hạn:** Hadoop LocalJobRunner một máy; không có taxi live/GPS thật; Recall còn có thể bỏ sót hotspot; chưa tự động dispatch.<br>
+**Giới hạn:** Hadoop LocalJobRunner một máy; không có taxi live/GPS thật; chỉ mô phỏng lệnh điều phối sau khi người vận hành duyệt; Recall còn có thể bỏ sót hotspot.<br>
 **Tiếp theo:** rolling-origin evaluation; thêm lag demand/lịch sự kiện với đặc trưng chỉ dùng dữ liệu có trước thời điểm dự báo; đánh giá Recall hoặc Recall@top-k trước khi chọn model mới.
 
 ## Slide 22 — Cảm ơn
