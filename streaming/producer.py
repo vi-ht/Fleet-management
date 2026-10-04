@@ -189,26 +189,6 @@ def emit_vehicle_trip_event(state, event_type):
     print(f"[TRIP_EVENT] {event_type}: {state['vehicle_id']} zone {zone}", flush=True)
 
 
-def start_passenger_trip_after_dispatch(state):
-    """Simulate a waiting rider after an approved reposition reaches its pickup zone."""
-    state["trip_number"] += 1
-    state["active_ride_id"] = state.get("dispatch_command_id") or uuid.uuid4().hex
-    state["trip_source"] = "human_approved_dispatch_simulation"
-    state["status"] = "occupied"
-    state["dispatch_status"] = "passenger_trip"
-    state["dropoff_zone"] = str(4 + ((state["vehicle_index"] * 29 + state["trip_number"] * 23) % 260))
-    state["destination_latitude"], state["destination_longitude"] = destination_for(
-        state["vehicle_index"], state["trip_number"]
-    )
-    state["route_start_latitude"] = state["latitude"]
-    state["route_start_longitude"] = state["longitude"]
-    state["pickup_event_emitted"] = True
-    clear_route(state)
-    state["route_retry_at"] = 0.0
-    state["route_error"] = None
-    emit_vehicle_trip_event(state, "passenger_pickup")
-
-
 def request_drive_route(state, now):
     """Fetch an OSRM driving route; leave the vehicle stopped if unavailable."""
     global last_route_request_at
@@ -261,13 +241,14 @@ def complete_vehicle_route(state):
         state["trip_source"] = None
         state["pickup_event_emitted"] = False
     else:
-        state["dispatch_status"] = "arrived"
+        state["dispatch_status"] = "staged"
         state["pickup_zone"] = state["dispatch_target_zone"] or state["pickup_zone"]
+        state["destination_latitude"] = state["latitude"]
+        state["destination_longitude"] = state["longitude"]
         dispatch_commands.update_one(
             {"command_id": state["dispatch_command_id"]},
             {"$set": {"status": "arrived", "arrived_at": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())}},
         )
-        start_passenger_trip_after_dispatch(state)
 
 
 def process_dispatch_commands():
@@ -324,7 +305,7 @@ def advance_vehicle(state, elapsed_seconds):
     dispatch_status = state["dispatch_status"]
     if status == "available" and dispatch_status not in {"routing", "en_route"}:
         state["speed_kmh"] = 0.0
-        return 0.0, 0.0, 0.0, 100.0 if dispatch_status == "arrived" else 0.0
+        return 0.0, 0.0, 0.0, 100.0 if dispatch_status == "staged" else 0.0
     speed_kmh = 28 + (state["vehicle_index"] * 7 + state["trip_number"]) % 24 if status == "occupied" else 14 + state["vehicle_index"] % 10
     now = time.monotonic()
     if not state["route_coordinates"] and not request_drive_route(state, now):
@@ -385,9 +366,9 @@ def send_vehicle_snapshot(cycle_number):
         elif state["dispatch_status"] == "routing":
             route_status = "Đã duyệt · đang tạo tuyến đường"
         elif state["dispatch_status"] == "en_route":
-            route_status = f"Đang tới zone {state['dispatch_target_zone']} · đã được duyệt"
-        elif state["dispatch_status"] == "arrived":
-            route_status = f"Đã tới zone {state['dispatch_target_zone']} theo lệnh điều phối"
+            route_status = f"Đang tới zone {state['dispatch_target_zone']} · xe rỗng, chưa có khách"
+        elif state["dispatch_status"] == "staged":
+            route_status = f"Đã tới zone {state['pickup_zone']} · xe rảnh, đang chờ khách"
         elif state["route_error"]:
             route_status = "Đang chờ thử lại tuyến đường"
         else:
