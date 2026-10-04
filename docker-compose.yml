@@ -250,6 +250,8 @@ services:
     environment:
       KAFKA_BOOTSTRAP_SERVERS: kafka:9092
       KAFKA_TOPIC: taxi_trips_realtime_v2
+      VEHICLE_TOPIC: taxi_vehicles
+      VEHICLE_EVENT_TOPIC: taxi_vehicle_trip_events
     volumes:
       - .:/workspace
     depends_on:
@@ -266,6 +268,7 @@ services:
       KAFKA_BOOTSTRAP_SERVERS: kafka:9092
       KAFKA_TOPIC: taxi_trips_realtime_v2
       VEHICLE_TOPIC: taxi_vehicles
+      VEHICLE_EVENT_TOPIC: taxi_vehicle_trip_events
       MONGO_URI: mongodb://mongodb:27017
       MONGO_DATABASE: taxi
       MONGO_DISPATCH_COLLECTION: vehicle_dispatch_commands
@@ -279,6 +282,7 @@ services:
       SIMULATION_SOURCE_ROWS: ${SIMULATION_SOURCE_ROWS:-10000}
       SIMULATION_TIMEZONE: ${SIMULATION_TIMEZONE:-America/New_York}
       SIMULATION_EVENT_TIME_STEP_SECONDS: ${SIMULATION_EVENT_TIME_STEP_SECONDS:-1}
+      SIMULATION_VEHICLE_TIME_SCALE: ${SIMULATION_VEHICLE_TIME_SCALE:-12}
       ROUTING_BASE_URL: ${ROUTING_BASE_URL:-https://router.project-osrm.org}
       ROUTE_RETRY_SECONDS: ${ROUTE_RETRY_SECONDS:-30}
       ROUTE_REQUEST_INTERVAL_SECONDS: ${ROUTE_REQUEST_INTERVAL_SECONDS:-1.1}
@@ -328,9 +332,11 @@ services:
     environment:
       KAFKA_BOOTSTRAP_SERVERS: kafka:9092
       VEHICLE_TOPIC: taxi_vehicles
+      VEHICLE_EVENT_TOPIC: taxi_vehicle_trip_events
       MONGO_URI: mongodb://mongodb:27017
       MONGO_DATABASE: taxi
       MONGO_VEHICLE_COLLECTION: vehicle_status
+      MONGO_VEHICLE_EVENTS_COLLECTION: vehicle_trip_events
     volumes:
       - .:/workspace
     depends_on:
@@ -352,6 +358,7 @@ services:
       MONGO_DATABASE: taxi
       MONGO_COLLECTION: hotspot_predictions
       MONGO_VEHICLE_COLLECTION: vehicle_status
+      MONGO_VEHICLE_EVENTS_COLLECTION: vehicle_trip_events
       MONGO_DISPATCH_COLLECTION: vehicle_dispatch_commands
       SPARK_HOME: /opt/spark
       HADOOP_CONF_DIR: /opt/spark/conf/hadoop

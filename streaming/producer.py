@@ -4,6 +4,7 @@ import json
 import math
 import os
 import time
+import uuid
 from datetime import datetime, timedelta
 from urllib.parse import quote
 from zoneinfo import ZoneInfo
@@ -16,6 +17,7 @@ from pymongo import MongoClient
 servers = os.getenv("KAFKA_BOOTSTRAP_SERVERS", "kafka:9092")
 topic = os.getenv("KAFKA_TOPIC", "taxi_trips")
 vehicle_topic = os.getenv("VEHICLE_TOPIC", "taxi_vehicles")
+vehicle_event_topic = os.getenv("VEHICLE_EVENT_TOPIC", "taxi_vehicle_trip_events")
 mongo_client = MongoClient(os.getenv("MONGO_URI", "mongodb://mongodb:27017"))
 database = mongo_client[os.getenv("MONGO_DATABASE", "taxi")]
 dispatch_commands = database[os.getenv("MONGO_DISPATCH_COLLECTION", "vehicle_dispatch_commands")]
@@ -31,6 +33,7 @@ event_time_step_seconds = float(os.getenv("SIMULATION_EVENT_TIME_STEP_SECONDS", 
 router_url = os.getenv("ROUTING_BASE_URL", "https://router.project-osrm.org").rstrip("/")
 route_retry_seconds = float(os.getenv("ROUTE_RETRY_SECONDS", "30"))
 route_request_interval = float(os.getenv("ROUTE_REQUEST_INTERVAL_SECONDS", "1.1"))
+vehicle_time_scale = max(1.0, float(os.getenv("SIMULATION_VEHICLE_TIME_SCALE", "12")))
 last_route_request_at = 0.0
 route_session = requests.Session()
 producer = None
@@ -78,6 +81,9 @@ def initial_vehicle_state(vehicle_index):
         "destination_latitude": destination_latitude,
         "destination_longitude": destination_longitude,
         "trip_number": trip_number,
+        "active_ride_id": uuid.uuid4().hex if status == "occupied" else None,
+        "trip_source": "initial_occupied_simulation" if status == "occupied" else None,
+        "pickup_event_emitted": False,
         "status": status,
         "pickup_zone": pickup_zone,
         "dropoff_zone": str(4 + ((vehicle_index * 29 + 23) % 260)) if status == "occupied" else pickup_zone,
@@ -157,6 +163,52 @@ def clear_route(state):
     state["route_remaining_m"] = 0.0
 
 
+def emit_vehicle_trip_event(state, event_type):
+    """Publish one idempotent pickup/drop-off event for the simulated ride."""
+    ride_id = state.get("active_ride_id")
+    if not ride_id:
+        ride_id = uuid.uuid4().hex
+        state["active_ride_id"] = ride_id
+    zone = state["pickup_zone"] if event_type == "passenger_pickup" else state["dropoff_zone"]
+    event = {
+        "event_id": f"{ride_id}:{event_type}",
+        "ride_id": ride_id,
+        "event_type": event_type,
+        "vehicle_id": state["vehicle_id"],
+        "trip_number": state["trip_number"],
+        "event_time": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
+        "zone": str(zone),
+        "latitude": round(state["latitude"], 6),
+        "longitude": round(state["longitude"], 6),
+        "pickup_zone": str(state["pickup_zone"]),
+        "dropoff_zone": str(state["dropoff_zone"]),
+        "source": state.get("trip_source") or "approved_dispatch_simulation",
+        "dispatch_command_id": state.get("dispatch_command_id"),
+    }
+    producer.send(vehicle_event_topic, event)
+    print(f"[TRIP_EVENT] {event_type}: {state['vehicle_id']} zone {zone}", flush=True)
+
+
+def start_passenger_trip_after_dispatch(state):
+    """Simulate a waiting rider after an approved reposition reaches its pickup zone."""
+    state["trip_number"] += 1
+    state["active_ride_id"] = state.get("dispatch_command_id") or uuid.uuid4().hex
+    state["trip_source"] = "human_approved_dispatch_simulation"
+    state["status"] = "occupied"
+    state["dispatch_status"] = "passenger_trip"
+    state["dropoff_zone"] = str(4 + ((state["vehicle_index"] * 29 + state["trip_number"] * 23) % 260))
+    state["destination_latitude"], state["destination_longitude"] = destination_for(
+        state["vehicle_index"], state["trip_number"]
+    )
+    state["route_start_latitude"] = state["latitude"]
+    state["route_start_longitude"] = state["longitude"]
+    state["pickup_event_emitted"] = True
+    clear_route(state)
+    state["route_retry_at"] = 0.0
+    state["route_error"] = None
+    emit_vehicle_trip_event(state, "passenger_pickup")
+
+
 def request_drive_route(state, now):
     """Fetch an OSRM driving route; leave the vehicle stopped if unavailable."""
     global last_route_request_at
@@ -199,11 +251,15 @@ def complete_vehicle_route(state):
     clear_route(state)
     state["speed_kmh"] = 0.0
     if state["status"] == "occupied":
+        emit_vehicle_trip_event(state, "passenger_dropoff")
         state["status"] = "available"
         state["pickup_zone"] = state["dropoff_zone"]
         state["destination_latitude"] = state["latitude"]
         state["destination_longitude"] = state["longitude"]
         state["dispatch_status"] = "idle"
+        state["active_ride_id"] = None
+        state["trip_source"] = None
+        state["pickup_event_emitted"] = False
     else:
         state["dispatch_status"] = "arrived"
         state["pickup_zone"] = state["dispatch_target_zone"] or state["pickup_zone"]
@@ -211,6 +267,7 @@ def complete_vehicle_route(state):
             {"command_id": state["dispatch_command_id"]},
             {"$set": {"status": "arrived", "arrived_at": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())}},
         )
+        start_passenger_trip_after_dispatch(state)
 
 
 def process_dispatch_commands():
@@ -316,10 +373,15 @@ def send_vehicle_snapshot(cycle_number):
     updated_at = time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())
     events = []
     for state in vehicle_states:
-        speed_kmh, remaining_km, heading, progress = advance_vehicle(state, elapsed_seconds)
+        if state["status"] == "occupied" and not state.get("pickup_event_emitted"):
+            emit_vehicle_trip_event(state, "passenger_pickup")
+            state["pickup_event_emitted"] = True
+        speed_kmh, remaining_km, heading, progress = advance_vehicle(
+            state, elapsed_seconds * vehicle_time_scale
+        )
         state["speed_kmh"] = round(speed_kmh, 1)
         if state["status"] == "occupied":
-            route_status = "Đang hoàn tất chuyến mô phỏng có khách"
+            route_status = f"Đã đón khách · đang tới điểm trả tại zone {state['dropoff_zone']}"
         elif state["dispatch_status"] == "routing":
             route_status = "Đã duyệt · đang tạo tuyến đường"
         elif state["dispatch_status"] == "en_route":
@@ -337,6 +399,7 @@ def send_vehicle_snapshot(cycle_number):
                 "route_status": route_status,
                 "dispatch_status": state["dispatch_status"],
                 "dispatch_command_id": state["dispatch_command_id"],
+                "active_ride_id": state.get("active_ride_id"),
                 "pickup_zone": state["pickup_zone"],
                 "dropoff_zone": state["dropoff_zone"],
                 "latitude": round(state["latitude"], 6),
@@ -346,7 +409,9 @@ def send_vehicle_snapshot(cycle_number):
                 "speed_kmh": state["speed_kmh"],
                 "heading_degrees": round(heading, 1),
                 "progress_pct": round(progress, 1),
-                "eta_minutes": round(remaining_km / max(speed_kmh, 1) * 60, 1),
+                "eta_minutes": round(
+                    remaining_km / max(speed_kmh, 1) * 60 / vehicle_time_scale, 1
+                ),
                 "updated_at": updated_at,
                 "simulation_cycle": cycle_number + 1,
                 "route_source": "OpenStreetMap via OSRM" if state["route_coordinates"] else None,

@@ -1,0 +1,27 @@
+{
+  "captured_at_local": "2026-10-04T14:34:21+07:00",
+  "dashboard": "http://localhost:8088/",
+  "api": "GET /api/vehicle-events?limit=100 and GET /api/vehicles",
+  "vehicle_count": 40,
+  "vehicle_state_counts": {
+    "occupied": 6,
+    "available": 34
+  },
+  "moving_vehicles": 6,
+  "returned_event_count": 44,
+  "returned_event_type_counts": {
+    "passenger_pickup": 30,
+    "passenger_dropoff": 14
+  },
+  "latest_20_event_type_counts": [
+    {
+      "count": 10,
+      "event_type": "passenger_dropoff"
+    },
+    {
+      "count": 10,
+      "event_type": "passenger_pickup"
+    }
+  ],
+  "note": "Counts describe the latest API response at capture time; events and vehicle movements are simulated."
+}
